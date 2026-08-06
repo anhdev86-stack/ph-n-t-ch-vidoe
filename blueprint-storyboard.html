@@ -1,0 +1,302 @@
+<title>Blueprint · Video sang Storyboard</title>
+<style>
+  :root{
+    --ground:#eef1f4; --surface:#ffffff; --surface-2:#f6f8fa;
+    --ink:#111820; --muted:#5a6672; --faint:#8a95a1;
+    --border:#d7dee4; --border-strong:#c2ccd4;
+    --accent:#0d6e78; --accent-soft:#0d6e7818;
+    --amber:#a25c10; --amber-soft:#a25c1015;
+    --grid:#0d6e7810;
+    --shadow:0 1px 2px rgba(16,24,32,.04),0 8px 24px rgba(16,24,32,.06);
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --ground:#0b0f14; --surface:#121922; --surface-2:#0f151d;
+      --ink:#e7eef4; --muted:#93a0ac; --faint:#657482;
+      --border:#22303c; --border-strong:#31434f;
+      --accent:#38c8d4; --accent-soft:#38c8d41f;
+      --amber:#e0a44a; --amber-soft:#e0a44a17;
+      --grid:#38c8d40f;
+      --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="light"]{
+    --ground:#eef1f4; --surface:#ffffff; --surface-2:#f6f8fa;
+    --ink:#111820; --muted:#5a6672; --faint:#8a95a1;
+    --border:#d7dee4; --border-strong:#c2ccd4;
+    --accent:#0d6e78; --accent-soft:#0d6e7818;
+    --amber:#a25c10; --amber-soft:#a25c1015; --grid:#0d6e7810;
+    --shadow:0 1px 2px rgba(16,24,32,.04),0 8px 24px rgba(16,24,32,.06);
+  }
+  :root[data-theme="dark"]{
+    --ground:#0b0f14; --surface:#121922; --surface-2:#0f151d;
+    --ink:#e7eef4; --muted:#93a0ac; --faint:#657482;
+    --border:#22303c; --border-strong:#31434f;
+    --accent:#38c8d4; --accent-soft:#38c8d41f;
+    --amber:#e0a44a; --amber-soft:#e0a44a17; --grid:#38c8d40f;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.35);
+  }
+
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--ground); color:var(--ink);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    line-height:1.55; -webkit-font-smoothing:antialiased;
+    background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+    background-size:34px 34px;
+  }
+  .mono{font-family:ui-monospace,"SF Mono","JetBrains Mono","Cascadia Code",Menlo,monospace}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+
+  /* header */
+  header{padding:64px 0 40px}
+  .eyebrow{font-family:ui-monospace,monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);font-weight:600}
+  h1{font-size:clamp(30px,5vw,46px);line-height:1.05;margin:14px 0 12px;letter-spacing:-.02em;text-wrap:balance;font-weight:750}
+  .lede{font-size:18px;color:var(--muted);max-width:64ch;margin:0}
+  .source{margin-top:20px;display:inline-flex;gap:8px;align-items:center;font-family:ui-monospace,monospace;font-size:12.5px;color:var(--faint);border:1px solid var(--border);background:var(--surface);padding:7px 12px;border-radius:7px}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+
+  section{padding:34px 0;border-top:1px solid var(--border)}
+  .sec-head{display:flex;align-items:baseline;gap:14px;margin-bottom:24px;flex-wrap:wrap}
+  .sec-no{font-family:ui-monospace,monospace;font-size:13px;color:var(--accent);font-weight:600}
+  h2{font-size:23px;margin:0;letter-spacing:-.01em;font-weight:700}
+  .sec-note{color:var(--muted);font-size:14.5px;margin:2px 0 0;max-width:70ch}
+
+  /* pipeline steps */
+  .steps{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  .step{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:15px 15px 16px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+  .step::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent);opacity:.85}
+  .step .n{font-family:ui-monospace,monospace;font-size:11.5px;color:var(--faint);font-weight:600}
+  .step .t{font-weight:650;font-size:14.5px;margin:6px 0 5px;letter-spacing:-.01em}
+  .step .d{font-size:12.8px;color:var(--muted);line-height:1.45}
+
+  /* recommended flow */
+  .flow{display:grid;grid-template-columns:1fr;gap:0;background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:var(--shadow)}
+  .row{display:grid;grid-template-columns:170px 1fr;gap:0;border-bottom:1px solid var(--border)}
+  .row:last-child{border-bottom:0}
+  .row .k{background:var(--surface-2);padding:16px 16px;border-right:1px solid var(--border);display:flex;flex-direction:column;gap:6px;justify-content:center}
+  .row .k .tag{font-family:ui-monospace,monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:600}
+  .row .k .eng{font-size:12px;color:var(--faint)}
+  .row .v{padding:16px 18px;font-size:14px;color:var(--muted)}
+  .row .v strong{color:var(--ink);font-weight:650}
+  .tag.asr{color:var(--amber)} .tag.vis{color:var(--accent)} .tag.llm{color:var(--accent)} .tag.io{color:var(--faint)}
+  .badge{display:inline-block;font-family:ui-monospace,monospace;font-size:10.5px;padding:2px 7px;border-radius:5px;border:1px solid var(--border-strong);color:var(--ink);background:var(--surface);margin-left:6px;vertical-align:middle}
+  .badge.self{border-color:var(--amber);color:var(--amber);background:var(--amber-soft)}
+  .badge.api{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+
+  /* framework cards */
+  .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;box-shadow:var(--shadow)}
+  .card h3{margin:0 0 4px;font-size:15.5px;letter-spacing:-.01em}
+  .card .sub{font-size:12px;color:var(--faint);margin:0 0 13px;font-family:ui-monospace,monospace}
+  .chips{display:flex;flex-direction:column;gap:7px}
+  .chip{display:flex;align-items:center;gap:9px;font-size:13px}
+  .chip .i{font-family:ui-monospace,monospace;font-size:11px;color:var(--accent);min-width:22px;font-weight:600}
+  .chip .en{color:var(--faint);font-size:11.5px}
+  .card.amber .chip .i{color:var(--amber)}
+
+  /* output mock */
+  .out{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:var(--shadow)}
+  .tabs{display:flex;gap:0;border-bottom:1px solid var(--border);background:var(--surface-2)}
+  .tabbtn{padding:12px 18px;font-size:13.5px;font-weight:600;color:var(--muted);border-bottom:2px solid transparent}
+  .tabbtn.on{color:var(--ink);border-bottom-color:var(--accent);background:var(--surface)}
+  .sb-row{display:grid;grid-template-columns:190px 1fr 1fr;gap:0;border-bottom:1px solid var(--border)}
+  .sb-row:last-child{border-bottom:0}
+  .sb-row.head>div{font-family:ui-monospace,monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);font-weight:600;background:var(--surface-2)}
+  .sb-row>div{padding:13px 15px;font-size:13px;border-right:1px solid var(--border)}
+  .sb-row>div:last-child{border-right:0}
+  .sb-name{font-weight:650}
+  .ts{font-family:ui-monospace,monospace;font-size:11.5px;color:var(--accent);font-variant-numeric:tabular-nums;margin-top:4px;display:inline-block}
+  .shot{display:inline-block;font-family:ui-monospace,monospace;font-size:11px;color:var(--accent);border:1px solid var(--border-strong);border-radius:5px;padding:1px 7px;margin-bottom:6px}
+  .vdesc{color:var(--muted);font-size:12.5px}
+  .script{color:var(--ink);font-size:12.5px}
+
+  /* prompt cards */
+  .prompts{display:grid;grid-template-columns:1fr;gap:14px}
+  .pcard{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:var(--shadow)}
+  .pcard .ph{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--surface-2)}
+  .pcard .ph .pt{font-weight:650;font-size:14px}
+  .pcard .ph .pl{font-family:ui-monospace,monospace;font-size:11px;color:var(--accent);text-transform:uppercase;letter-spacing:.1em}
+  pre{margin:0;padding:15px 16px;overflow-x:auto;font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:12.3px;line-height:1.6;color:var(--ink)}
+  pre .c{color:var(--faint)} pre .k2{color:var(--accent)} pre .a{color:var(--amber)}
+
+  /* stack callout */
+  .rec{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+  .rbox{border:1px solid var(--border);border-radius:12px;padding:16px;background:var(--surface);box-shadow:var(--shadow)}
+  .rbox.win{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent),var(--shadow)}
+  .rbox .rl{font-family:ui-monospace,monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);font-weight:600}
+  .rbox.win .rl{color:var(--accent)}
+  .rbox h4{margin:8px 0 8px;font-size:15px}
+  .rbox p{margin:0;font-size:12.8px;color:var(--muted)}
+  .pill{display:inline-block;font-family:ui-monospace,monospace;font-size:10px;padding:2px 8px;border-radius:20px;background:var(--accent);color:#fff;letter-spacing:.05em;margin-bottom:4px}
+
+  footer{padding:40px 0 70px;color:var(--faint);font-size:12.5px;font-family:ui-monospace,monospace;border-top:1px solid var(--border)}
+
+  @media (max-width:860px){
+    .steps{grid-template-columns:repeat(2,1fr)}
+    .cards{grid-template-columns:1fr}
+    .rec{grid-template-columns:1fr}
+    .sb-row{grid-template-columns:1fr;} .sb-row>div{border-right:0;border-bottom:1px solid var(--border)}
+    .sb-row.head{display:none}
+    .row{grid-template-columns:1fr}.row .k{border-right:0;border-bottom:1px solid var(--border)}
+  }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Reverse-engineer · Blueprint kỹ thuật</div>
+    <h1>Video sang Storyboard</h1>
+    <p class="lede">Bóc tách cách Kaloclip biến một video bán hàng TikTok thành bảng phân cảnh + phân tích điểm thành công — và bản thiết kế để tự dựng lại.</p>
+    <div class="source"><span class="dot"></span>Nguồn: quan sát trực tiếp clip.kalowave.com · pipeline loading + output 2 tab</div>
+  </header>
+
+  <section>
+    <div class="sec-head"><span class="sec-no">01</span><div><h2>Pipeline thật của Kaloclip</h2><p class="sec-note">8 bước lộ ra ở màn hình "Đang tối ưu hóa". Đây là trình tự xử lý gốc — đọc từ trái sang phải, trên xuống dưới.</p></div></div>
+    <div class="steps">
+      <div class="step"><div class="n">01</div><div class="t">Trích xuất video</div><div class="d">Tải video, tách frames + audio track.</div></div>
+      <div class="step"><div class="n">02</div><div class="t">Phân loại video</div><div class="d">Nhận diện loại: review / bán hàng / unboxing.</div></div>
+      <div class="step"><div class="n">03</div><div class="t">Phân tích hình ảnh</div><div class="d">Vision model xem keyframes đại diện.</div></div>
+      <div class="step"><div class="n">04</div><div class="t">Phân tích âm thanh</div><div class="d">Tách giọng khỏi nhạc nền.</div></div>
+      <div class="step"><div class="n">05</div><div class="t">Nhận diện ngôn ngữ</div><div class="d">Detect tiếng Việt → chọn model ASR.</div></div>
+      <div class="step"><div class="n">06</div><div class="t">Phân tích cấu trúc kịch bản</div><div class="d">LLM gom transcript thành phân đoạn marketing.</div></div>
+      <div class="step"><div class="n">07</div><div class="t">Khớp đặc điểm dữ liệu</div><div class="d">Đồng bộ timestamp: hình ↔ lời ↔ phân đoạn.</div></div>
+      <div class="step"><div class="n">08</div><div class="t">Tạo kết quả cuối cùng</div><div class="d">Render bảng + sinh phần phân tích. Cache lại.</div></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="sec-no">02</span><div><h2>Pipeline đề xuất cho anh <span class="badge">HYBRID</span></h2><p class="sec-note">Gộp 8 bước Kaloclip thành 4 khối. Tự host chỗ tiếng Việt dễ sai (ASR), gọi API chỗ cần suy luận (vision + marketing).</p></div></div>
+    <div class="flow">
+      <div class="row"><div class="k"><span class="tag io">① INGEST</span><span class="eng">ffmpeg</span></div><div class="v">Tách <strong>audio.wav</strong> + trích <strong>keyframes</strong> theo scene-change (<span class="mono">select='gt(scene,0.3)'</span>).</div></div>
+      <div class="row"><div class="k"><span class="tag asr">② ASR</span><span class="eng">Speech → text</span></div><div class="v"><strong>PhoWhisper / Whisper large-v3</strong> <span class="badge self">self-host</span> → transcript có timestamp. Chỗ dễ sai nhất với tiếng Việt bán hàng → tự host để chuẩn.</div></div>
+      <div class="row"><div class="k"><span class="tag vis">③ VISION</span><span class="eng">Frame → mô tả</span></div><div class="v">Mỗi keyframe → <strong>Claude / Gemini vision</strong> <span class="badge api">API</span> gán <strong>cỡ cảnh</strong> + <strong>mô tả hình ảnh</strong>.</div></div>
+      <div class="row"><div class="k"><span class="tag llm">④ SEGMENT + PHÂN TÍCH</span><span class="eng">LLM reasoning</span></div><div class="v"><strong>Claude</strong> <span class="badge api">API</span> gộp transcript+visual → cắt đoạn theo khung marketing, rồi sinh "điểm thành công". Kết quả <strong>cache theo video_id</strong>.</div></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="sec-no">03</span><div><h2>Ba khung "nạp" vào prompt</h2><p class="sec-note">Bí quyết không nằm ở model, mà ở 3 bộ taxonomy đóng cứng — ép output luôn nhất quán.</p></div></div>
+    <div class="cards">
+      <div class="card">
+        <h3>Khung kịch bản affiliate</h3>
+        <p class="sub">→ đặt tên phân đoạn</p>
+        <div class="chips">
+          <div class="chip"><span class="i">01</span>Mở đầu Thu hút <span class="en">Hook</span></div>
+          <div class="chip"><span class="i">02</span>Điểm bán hàng độc đáo <span class="en">USP</span></div>
+          <div class="chip"><span class="i">03</span>Thông tin sản phẩm <span class="en">Info</span></div>
+          <div class="chip"><span class="i">04</span>Trải nghiệm thực tế <span class="en">Experience</span></div>
+          <div class="chip"><span class="i">05</span>Hướng dẫn sử dụng <span class="en">How-to</span></div>
+          <div class="chip"><span class="i">06</span>Kêu gọi hành động <span class="en">CTA</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Taxonomy cỡ cảnh</h3>
+        <p class="sub">→ danh sách đóng, vision chọn 1</p>
+        <div class="chips">
+          <div class="chip"><span class="i">◇</span>Toàn cảnh <span class="en">Wide</span></div>
+          <div class="chip"><span class="i">◇</span>Viễn cảnh <span class="en">Extreme wide</span></div>
+          <div class="chip"><span class="i">◇</span>Trung cảnh <span class="en">Medium</span></div>
+          <div class="chip"><span class="i">◇</span>Trung cận cảnh <span class="en">Medium CU</span></div>
+          <div class="chip"><span class="i">◇</span>Cận cảnh <span class="en">Close-up</span></div>
+          <div class="chip"><span class="i">◇</span>Đặc tả <span class="en">Extreme CU</span></div>
+        </div>
+      </div>
+      <div class="card amber">
+        <h3>Khung tâm lý bán hàng</h3>
+        <p class="sub">→ sinh tab "điểm thành công"</p>
+        <div class="chips">
+          <div class="chip"><span class="i">01</span>Khơi gợi tò mò</div>
+          <div class="chip"><span class="i">02</span>Nhấn giá trị / kinh tế</div>
+          <div class="chip"><span class="i">03</span>USP giải quyết nỗi đau</div>
+          <div class="chip"><span class="i">04</span>Tạo niềm tin / an toàn</div>
+          <div class="chip"><span class="i">05</span>Khan hiếm + ưu đãi → CTA</div>
+          <div class="chip"><span class="i">＋</span>Phân tích kỹ thuật quay phim</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="sec-no">04</span><div><h2>Cấu trúc output</h2><p class="sec-note">Hai tab. Bảng storyboard 3 cột, và bản phân tích điểm thành công.</p></div></div>
+    <div class="out">
+      <div class="tabs"><div class="tabbtn on">Kịch bản video</div><div class="tabbtn">Giải thích điểm thành công</div></div>
+      <div class="sb-row head"><div>Phân cảnh</div><div>Mô tả hình ảnh</div><div>Kịch bản âm thanh</div></div>
+      <div class="sb-row">
+        <div><div class="sb-name">Mở đầu Thu hút</div><span class="ts">0 – 4s</span></div>
+        <div><span class="shot">Trung cảnh</span><div class="vdesc">Người phụ nữ khiêng thùng nước giặt lớn in chữ, đặt xuống lấy ra can màu trắng nhãn Oriental Flower.</div></div>
+        <div><span class="script">"Cái này nó lưu hương đến cả một tuần cơ. Nên là trong vòng nhà 7 ngày…"</span></div>
+      </div>
+      <div class="sb-row">
+        <div><div class="sb-name">Điểm bán hàng độc đáo</div><span class="ts">4 – 15s</span></div>
+        <div><span class="shot">Cận cảnh</span><div class="vdesc">Giới thiệu chi tiết can nước giặt, chỉ vào các bộ phận, khuôn mặt biểu lộ hào hứng.</div></div>
+        <div><span class="script">"Mà hôm nay giá nó siêu hời nhé các bác… ấn vào giỏ hàng góc trái kiểm tra hộ em."</span></div>
+      </div>
+      <div class="sb-row">
+        <div><div class="sb-name">Trải nghiệm thực tế</div><span class="ts">25 – 42s</span></div>
+        <div><span class="shot">Cận cảnh</span><div class="vdesc">Mô tả trải nghiệm mùi hương giống phấn rôm em bé, khả năng lưu hương lâu.</div></div>
+        <div><span class="script">"Cả một cái thùng 6kg, xài nửa năm không hết… mùi phấn rôm em bé, thơm lắm."</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="sec-no">05</span><div><h2>Prompt xương sống</h2><p class="sec-note">Ba lời gọi model. Copy về chỉnh nhẹ là chạy được.</p></div></div>
+    <div class="prompts">
+      <div class="pcard">
+        <div class="ph"><span class="pt">Vision · mô tả keyframe</span><span class="pl">bước ③</span></div>
+        <pre><span class="c"># Xem khung hình, trả JSON</span>
+{
+  <span class="k2">"shot_type"</span>: <span class="c">// chọn ĐÚNG 1: Toàn cảnh|Viễn cảnh|Trung cảnh|</span>
+              <span class="c">//              Trung cận cảnh|Cận cảnh|Đặc tả</span>
+  <span class="k2">"visual_desc"</span>: <span class="c">// 1-2 câu: ai/vật, đang làm gì, sản phẩm nào lộ rõ</span>
+}
+<span class="a">Chỉ mô tả cái NHÌN THẤY — không suy diễn lời thoại.</span></pre>
+      </div>
+      <div class="pcard">
+        <div class="ph"><span class="pt">Segment · cắt đoạn theo khung</span><span class="pl">bước ④a</span></div>
+        <pre><span class="c"># INPUT: transcript(+timestamp) & visual(+timestamp)</span>
+Cắt video thành PHÂN ĐOẠN theo dòng chảy bán hàng.
+Mỗi đoạn gán section_type ∈ {<span class="k2">hook, usp, product_info,</span>
+  <span class="k2">experience, how_to, social_proof, cta</span>}.
+Đặt section_name tiếng Việt hấp dẫn.
+→ trả mảng {section_name, section_type, start, end,
+            shot_type, visual_desc, transcript}</pre>
+      </div>
+      <div class="pcard">
+        <div class="ph"><span class="pt">Analysis · điểm thành công</span><span class="pl">bước ④b</span></div>
+        <pre><span class="c"># INPUT: storyboard đã cắt đoạn</span>
+<span class="a">1) "Giải thích điểm thành công":</span> 4-6 gạch đầu dòng,
+   mỗi dòng = 1 ĐÒN BẨY tâm lý (tò mò, giá trị,
+   USP, niềm tin, khan hiếm+CTA) + cách video dùng nó.
+<span class="a">2) "Kỹ thuật quay phim":</span> cỡ cảnh chủ đạo, chuyển
+   động máy, zoom chi tiết, bố cục đặt sản phẩm.</pre>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="sec-no">06</span><div><h2>Chọn stack</h2><p class="sec-note">Bắt đầu nhanh bằng API, nâng cấp độ chính xác tiếng Việt bằng self-host khi volume lớn.</p></div></div>
+    <div class="rec">
+      <div class="rbox">
+        <div class="rl">Phương án A</div>
+        <h4>Gemini native video</h4>
+        <p>Ingest thẳng file video → 1 JSON có cả transcript, mô tả, cỡ cảnh, phân đoạn. Gộp bước 1–7 thành 1 call. MVP trong 1 ngày, không GPU.</p>
+      </div>
+      <div class="rbox win">
+        <span class="pill">KHUYẾN NGHỊ</span>
+        <div class="rl">Phương án Lai</div>
+        <h4>Whisper + API vision/LLM</h4>
+        <p>PhoWhisper tự host cho ASR tiếng Việt chuẩn + Claude/Gemini cho vision & suy luận marketing. Cân bằng chi phí và độ chính xác.</p>
+      </div>
+      <div class="rbox">
+        <div class="rl">Phương án B</div>
+        <h4>Tự host toàn bộ</h4>
+        <p>Whisper + scene-detect + vision mã nguồn mở. Rẻ nhất dài hạn, chính xác nhất, nhưng cần GPU và nhiều bước vận hành.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    ĐÒN BẨY · caching theo video_id là khoản tiết kiệm lớn nhất — mỗi video chỉ xử lý một lần. Chi tiết prompt + JSON schema đầy đủ nằm trong THIET-KE-Video-sang-Storyboard.md
+  </footer>
+</div>

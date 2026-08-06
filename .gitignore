@@ -1,0 +1,19 @@
+# Bí mật — TUYỆT ĐỐI không commit
+.env
+*.key
+**/secrets*
+
+# Python
+mvp/.venv/
+**/__pycache__/
+*.pyc
+
+# Kết quả sinh ra & media nặng
+mvp/out/
+mvp/samples/*.mp4
+
+# Cấu hình local của Claude Code
+.claude/
+
+# macOS
+.DS_Store

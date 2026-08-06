@@ -1,0 +1,9 @@
+# Engine suy luận (bắt buộc)
+anthropic>=0.100.0
+
+# ASR tiếng Việt (chọn 1 backend — xem README):
+#   Ưu tiên: faster-whisper (chạy CPU được, kén Python 3.14)
+faster-whisper>=1.0.0
+#   Thay thế nếu faster-whisper không cài được:
+#   - whisper.cpp:  brew install whisper-cpp   (binary whisper-cli, KHÔNG cần pip)
+#   - hoặc dùng --transcript <file .srt/.json> để nạp transcript có sẵn

@@ -1,0 +1,69 @@
+# MVP — Video sang Storyboard
+
+Reverse-engineer feature của Kaloclip. Biến 1 video bán hàng → bảng storyboard 3 cột + phân tích "điểm thành công". Xem thiết kế đầy đủ ở `../THIET-KE-Video-sang-Storyboard.md`.
+
+## Kiến trúc (Claude làm engine + ASR cắm-rút)
+
+```
+video.mp4
+  ├─① media.py   ffmpeg → audio.wav + keyframes (mỗi 3s)
+  ├─② asr.py     faster-whisper | whisper.cpp | --transcript → lời thoại + timestamp
+  ├─③ llm.py     Claude vision → cỡ cảnh + mô tả hình (gộp nhiều ảnh/lượt gọi)
+  └─④ llm.py     Claude → cắt đoạn theo khung marketing + "điểm thành công" (structured output)
+        → out/<tên>.json  +  out/<tên>.html (2 tab)  — cache theo hash video
+```
+
+Chỉ cần **1 API key** (`ANTHROPIC_API_KEY`). Không cần GPU.
+
+## Cài đặt
+
+```bash
+bash setup.sh                      # tạo .venv + cài deps (tránh lỗi PEP 668)
+source .venv/bin/activate
+export ANTHROPIC_API_KEY=sk-ant-...
+```
+
+Cần sẵn `ffmpeg` (máy đã có: `ffmpeg -version`).
+
+## Chạy
+
+```bash
+python run.py video.mp4
+open out/video.<hash>.html
+```
+
+Đổi model rẻ hơn cho vision hàng loạt:
+```bash
+MODEL=claude-sonnet-5 python run.py video.mp4
+```
+
+## ASR — chọn 1 backend
+
+| Backend | Cài | Ghi chú |
+|---|---|---|
+| **faster-whisper** | `pip install faster-whisper` | Tốt nhất tiếng Việt, chạy CPU. **Kén Python 3.14** — nếu lỗi, dùng cách dưới |
+| **whisper.cpp** | `brew install whisper-cpp` + `export WHISPER_CPP_MODEL=/path/ggml-small.bin` | Binary, không phụ thuộc Python |
+| **Transcript ngoài** | `python run.py video.mp4 --transcript loi.srt` | Nạp .srt/.json có sẵn — luôn chạy được, bỏ qua ASR |
+
+> Python hệ thống của máy đang là 3.14 (externally-managed). `setup.sh` tạo venv riêng để cài. Nếu faster-whisper vẫn lỗi build trên 3.14, tạo venv bằng Python 3.11/3.12 (`python3.12 -m venv .venv`) hoặc dùng whisper.cpp / `--transcript`.
+
+## Tùy chọn dòng lệnh
+
+```
+python run.py VIDEO [--transcript FILE] [--interval 3.0]
+              [--asr-model small] [--out out] [--force]
+```
+
+- `--interval` giây/keyframe (nhỏ hơn = chi tiết hơn, tốn token hơn)
+- `--force` bỏ qua cache, chạy lại
+- kết quả cache theo hash nội dung video → mở lại đọc cache, không gọi API lại
+
+## Bí quyết nằm ở đâu
+
+3 khung taxonomy trong `storyboard/prompts.py`: cỡ cảnh (đóng), giai đoạn kịch bản affiliate (hook→cta), khung tâm lý bán hàng. Đây là phần "nạp" quyết định chất lượng — chỉnh ở đây trước.
+
+## Nâng cấp gợi ý (v2+)
+
+- Scene-detect (`ffmpeg select='gt(scene,0.3)'`) thay lấy mẫu đều để bám ranh giới cảnh.
+- Lưu cache vào DB/S3 theo `video_id` thay vì file.
+- Nút "Xuất kịch bản" / "Tối ưu kịch bản" (Claude viết lại hay hơn) như Kaloclip.
