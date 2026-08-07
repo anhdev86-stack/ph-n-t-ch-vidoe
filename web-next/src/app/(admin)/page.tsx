@@ -63,13 +63,32 @@ export default function StoryboardPage() {
       // 1) Ưu tiên đọc bản ĐÃ LƯU — không phân tích lại, không tốn token
       api.get(`/analysis/${vid}`).then((cached) => {
         if (cached && cached.kich_ban_video) { setData(cached); return; }
-        // 2) Chưa có -> mới phân tích (hiện 8 bước)
+        // 2) Chưa có -> phân tích (hiện 8 bước).
+        // Phân tích lâu (tải model + ASR + Claude) có thể vượt timeout proxy -> request lỗi
+        // NHƯNG backend vẫn chạy tới cùng & lưu cache. Nên: vừa gọi /analyze, vừa POLL
+        // /analysis/{id} tới khi có kết quả -> không báo lỗi oan.
         setAnalyzing(true);
+        let done = false;
+        const finish = (d: Storyboard) => {
+          if (done) return; done = true;
+          setData(d); setAnalyzing(false);
+        };
         api.post("/analyze", { video_id: vid, video_url: vurl || undefined,
           title: p.get("title") || "", source: p.get("source") || "" })
-          .then((r) => { if (r.error) setErr(r.error); else setData(r); })
-          .catch((e) => setErr(String(e.message || e)))
-          .finally(() => setAnalyzing(false));
+          .then((r) => { if (r?.kich_ban_video) finish(r); })
+          .catch(() => { /* nuốt lỗi timeout -> để polling lo */ });
+        let tries = 0;
+        const poll = setInterval(() => {
+          if (done) { clearInterval(poll); return; }
+          if (++tries > 60) { // ~8 phút
+            clearInterval(poll);
+            if (!done) { setErr("Phân tích quá lâu hoặc thất bại. Thử lại hoặc chờ thêm."); setAnalyzing(false); }
+            return;
+          }
+          api.get(`/analysis/${vid}`)
+            .then((c) => { if (c?.kich_ban_video) { clearInterval(poll); finish(c); } })
+            .catch(() => {});
+        }, 8000);
       }).catch((e) => setErr(String(e.message || e)));
     } else {
       // Chưa chọn video -> KHÔNG nạp dữ liệu mẫu, hiện màn hướng dẫn trống
