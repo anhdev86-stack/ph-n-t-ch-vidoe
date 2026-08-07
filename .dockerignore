@@ -1,0 +1,16 @@
+# Context của service `api` là gốc repo → .dockerignore này áp dụng cho nó.
+.git
+.claude
+**/__pycache__
+**/*.pyc
+mvp/.venv
+mvp/out
+mvp/samples
+web-next/node_modules
+web-next/.next
+backend/analysis_cache
+backend/analysis_videos
+backend/uploads
+backend/.tts_token.json
+**/.DS_Store
+*.log

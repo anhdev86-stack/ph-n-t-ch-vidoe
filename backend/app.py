@@ -52,6 +52,11 @@ app.add_middleware(
 )
 
 
+@app.get("/api/v1/health")
+def health():
+    return {"ok": True}
+
+
 # ---------- JWT ----------
 def _make_token(sub: str, role: str, ttl: int, kind: str) -> str:
     now = int(time.time())

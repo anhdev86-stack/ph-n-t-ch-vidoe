@@ -1,0 +1,54 @@
+# Deploy trên Coolify (VPS 164) — subdomain video.infitech.vn
+# - web (Next.js) : service DUY NHẤT ra ngoài, gắn domain video.infitech.vn, cổng 3000
+# - api (FastAPI) : chỉ nội bộ, web proxy /api/* sang api:8000 (không CORS, không lộ ra ngoài)
+# Secrets (ANTHROPIC_API_KEY, JWT_SECRET, NEXTAUTH_SECRET, ADMIN_PASSWORD…) khai ở
+# tab Environment Variables của Coolify, KHÔNG commit vào repo.
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      JWT_SECRET: ${JWT_SECRET}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      WEB_ORIGIN: ${WEB_ORIGIN}
+      MODEL: ${MODEL:-claude-opus-5}
+    expose:
+      - "8000"
+    volumes:
+      - api_cache:/app/backend/analysis_cache      # storyboard cache + history + token TTS + model whisper
+      - api_videos:/app/backend/analysis_videos    # video TikTok tải về
+      - api_uploads:/app/backend/uploads           # video đối thủ upload
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health', timeout=3).status==200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+  web:
+    build:
+      context: ./web-next
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: /api/v1
+        NEXTAUTH_URL: ${NEXTAUTH_URL}
+    restart: unless-stopped
+    environment:
+      NEXTAUTH_URL: ${NEXTAUTH_URL}          # https://video.infitech.vn
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+      API_PROXY_TARGET: http://api:8000      # web gọi backend nội bộ (login SSR + rewrite /api)
+    # Coolify: gán Domain video.infitech.vn cho service này, Port 3000.
+    ports:
+      - "3000"
+    depends_on:
+      - api
+
+volumes:
+  api_cache:
+  api_videos:
+  api_uploads:

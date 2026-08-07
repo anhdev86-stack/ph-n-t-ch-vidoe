@@ -19,7 +19,8 @@ COPY . .
 # Build-time arguments
 # Chỉ NEXT_PUBLIC_* cần ở build (Next inline vào bundle). NEXTAUTH_URL để build cho tiện.
 # NEXTAUTH_SECRET là secret RUNTIME — KHÔNG nhận ở build để tránh lọt vào layer/history.
-ARG NEXT_PUBLIC_API_URL
+# Prod: cùng domain, Next rewrite /api → backend nội bộ → dùng đường dẫn tương đối.
+ARG NEXT_PUBLIC_API_URL=/api/v1
 ARG NEXTAUTH_URL
 
 # Set environment variables for build
