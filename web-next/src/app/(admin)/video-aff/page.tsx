@@ -73,7 +73,11 @@ export default function VideoAffPage() {
     { title: "ID video", dataIndex: "videoId", width: 170, ellipsis: true },
     { title: "Link", dataIndex: "videoLink", width: 60,
       render: (u: string) => u ? <a href={u} target="_blank" rel="noopener">Xem</a> : "—" },
-    { title: "Tiêu đề", dataIndex: "title", ellipsis: true, width: 240 },
+    { title: "Tiêu đề", dataIndex: "title", width: 240,
+      onCell: () => ({ style: { maxWidth: 240 } }),
+      render: (t: string) => (
+        <div title={t} style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "clip" }}>{t}</div>
+      ) },
     { title: "Người đăng", dataIndex: "username", width: 130, ellipsis: true },
     { title: "GMV", dataIndex: "gmv", width: 130, align: "right",
       sorter: (a, b) => a.gmv - b.gmv, defaultSortOrder: "descend",
