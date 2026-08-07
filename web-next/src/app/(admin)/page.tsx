@@ -117,9 +117,14 @@ export default function StoryboardPage() {
                 children: (
                   <div>
                     <Title level={5}>✨ Giải thích điểm thành công</Title>
-                    <ol style={{ lineHeight: 1.8 }}>
-                      {sa.points.map((p, i) => <li key={i}>{p}</li>)}
-                    </ol>
+                    <div className="pt-list">
+                      {sa.points.map((p, i) => (
+                        <div className="pt-row" key={i}>
+                          <span className="pt-num">{i + 1}</span>
+                          <span className="pt-text">{p}</span>
+                        </div>
+                      ))}
+                    </div>
                     <Title level={5} style={{ marginTop: 24 }}>🎬 Kỹ thuật quay phim</Title>
                     <Paragraph style={{ color: "#555" }}>{sa.ky_thuat_quay_phim}</Paragraph>
                   </div>
@@ -129,7 +134,21 @@ export default function StoryboardPage() {
           />
         </div>
       </div>
-      <style jsx global>{`.row-active > td { background: #e6fffb !important; }`}</style>
+      <style jsx global>{`
+        .row-active > td { background: #e6fffb !important; }
+        .pt-list { margin: 4px 0 8px; }
+        .pt-row {
+          display: flex; gap: 12px; align-items: flex-start;
+          padding: 12px 4px; border-bottom: 1px solid #f0f0f0; line-height: 1.6;
+        }
+        .pt-row:last-child { border-bottom: 0; }
+        .pt-num {
+          flex-shrink: 0; width: 24px; height: 24px; border-radius: 50%;
+          background: #e6fffb; color: #08979c; font-weight: 700; font-size: 13px;
+          display: grid; place-items: center;
+        }
+        .pt-text { color: #333; }
+      `}</style>
     </Card>
   );
 }

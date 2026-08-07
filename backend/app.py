@@ -172,27 +172,27 @@ def videos(page_size: int = 20, page_token: str | None = None, user: dict = Depe
 
 
 # ---------- TikTok OAuth ----------
-@app.get("/api/v1/tiktok/authorize-url")
-def authorize_url(user: dict = Depends(require_user)):
-    try:
-        return {"url": tiktok.authorize_url()}
-    except Exception as e:  # noqa: BLE001
-        raise HTTPException(500, str(e))
+class ConnectBody(BaseModel):
+    authCode: str
+    appKey: str
+    appSecret: str
+    serviceId: str = ""
+    shopName: str = ""
+    market: str = "global"
 
 
-@app.get("/api/v1/tiktok/callback")
-def tiktok_callback(code: str | None = None, auth_code: str | None = None):
-    ac = code or auth_code
-    if not ac:
-        raise HTTPException(400, "thiếu code")
+@app.post("/api/v1/tiktok/connect")
+def tiktok_connect(body: ConnectBody, user: dict = Depends(require_user)):
+    """Nhận app_key/app_secret/auth_code từ form -> đổi & lưu token."""
     try:
-        store = tiktok.get_access_token(ac)
+        store = tiktok.connect(body.authCode, body.appKey, body.appSecret,
+                               body.serviceId, body.shopName, body.market)
     except Exception as e:  # noqa: BLE001
-        return JSONResponse({"error": str(e)}, status_code=502)
-    return RedirectResponse(f"{WEB_ORIGIN}/connect?authorized={1 if store.get('access_token') else 0}")
+        return JSONResponse({"error": str(e), "connected": False}, status_code=200)
+    return {"connected": bool(store.get("access_token")),
+            "seller_name": store.get("seller_name", "")}
 
 
 @app.get("/api/v1/tiktok/status")
 def tiktok_status(user: dict = Depends(require_user)):
-    store = tiktok._load_store()
-    return {"connected": bool(store.get("access_token")), "seller_name": store.get("seller_name", "")}
+    return tiktok.status()
