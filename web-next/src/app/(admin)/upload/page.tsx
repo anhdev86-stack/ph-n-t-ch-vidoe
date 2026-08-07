@@ -109,9 +109,11 @@ export default function UploadPage() {
         <CommonAnalyze items={selectedItems} />
         {selectedItems.length > 0 && <Text type="secondary">Đã chọn {selectedItems.length} video</Text>}
       </Space>
-      <Table rowKey="id" columns={columns} dataSource={items} loading={loading}
-        rowSelection={{ selectedRowKeys: selectedKeys, onChange: setSelectedKeys }}
-        pagination={{ pageSize: 10 }} locale={{ emptyText: "Chưa có video nào. Tải lên ở trên." }} />
+      <Table rowKey="id" columns={columns} dataSource={items} loading={loading} size="small"
+        rowSelection={{ selectedRowKeys: selectedKeys, onChange: setSelectedKeys, preserveSelectedRowKeys: true }}
+        sticky scroll={{ x: "max-content", y: 560 }}
+        pagination={{ defaultPageSize: 20, showSizeChanger: true, pageSizeOptions: [20, 50, 100], showTotal: (t) => `${t} video` }}
+        locale={{ emptyText: "Chưa có video nào. Tải lên ở trên." }} />
     </Card>
   );
 }

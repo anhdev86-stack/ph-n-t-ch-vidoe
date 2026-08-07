@@ -76,13 +76,33 @@ export default function VideoAffPage() {
     finally { setLoading(false); }
   };
 
-  // Tự động đổ sản phẩm cho các video có đơn (chạy nền, song song 4 luồng)
+  // Tự đổ sản phẩm cho video có đơn (chạy nền). Tối ưu MƯỢT khi nhiều dữ liệu:
+  // gom kết quả vào buffer, chỉ vẽ lại ~2 lần/giây thay vì set state theo từng video
+  // (tránh "bão re-render" làm giật bảng khi có hàng trăm video).
   const autoLoadProducts = async (list: Video[]) => {
     const targets = list.filter((v) => v.orders > 0);
     if (!targets.length) return;
     setBulk({ done: 0, total: targets.length });
+    setProducts((p) => {
+      const n = { ...p };
+      targets.forEach((v) => { if (n[v.videoId] === undefined) n[v.videoId] = "loading"; });
+      return n;
+    });
+    const buf: Record<string, Product[]> = {};
     let done = 0;
-    await pool(targets, async (v) => { await loadProducts(v.videoId); done++; setBulk({ done, total: targets.length }); }, 4);
+    const timer = setInterval(() => {
+      setProducts((p) => ({ ...p, ...buf }));
+      setBulk({ done, total: targets.length });
+    }, 500);
+    await pool(targets, async (v) => {
+      try {
+        const r = await api.get(`/videos/${v.videoId}/products?${new URLSearchParams(qsDates())}`);
+        buf[v.videoId] = r.products || [];
+      } catch { buf[v.videoId] = []; }
+      done++;
+    }, 6);
+    clearInterval(timer);
+    setProducts((p) => ({ ...p, ...buf })); // flush cuối
     setBulk(null);
   };
 
@@ -207,8 +227,10 @@ export default function VideoAffPage() {
       )}
 
       <Table rowKey="videoId" columns={columns} dataSource={videos} loading={loading} size="small"
-        rowSelection={{ selectedRowKeys: selectedKeys, onChange: setSelectedKeys }}
-        scroll={{ x: 1500 }} pagination={{ pageSize: 10, showSizeChanger: true, showTotal: (t) => `${t} video` }} />
+        rowSelection={{ selectedRowKeys: selectedKeys, onChange: setSelectedKeys, preserveSelectedRowKeys: true }}
+        sticky scroll={{ x: 1500, y: 560 }}
+        pagination={{ defaultPageSize: 20, showSizeChanger: true,
+          pageSizeOptions: [20, 50, 100], showTotal: (t) => `${t} video` }} />
     </Card>
   );
 }

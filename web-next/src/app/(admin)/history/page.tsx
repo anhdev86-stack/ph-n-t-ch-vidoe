@@ -48,9 +48,10 @@ export default function HistoryPage() {
   ];
 
   const tableFor = (source: string) => (
-    <Table rowKey="video_id" columns={columns} loading={loading}
+    <Table rowKey="video_id" columns={columns} loading={loading} size="small"
       dataSource={items.filter((x) => x.source === source)}
-      pagination={{ pageSize: 10 }}
+      sticky scroll={{ x: "max-content", y: 560 }}
+      pagination={{ defaultPageSize: 20, showSizeChanger: true, pageSizeOptions: [20, 50, 100], showTotal: (t) => `${t} video` }}
       locale={{ emptyText: source === "upload" ? "Chưa phân tích video đối thủ nào." : "Chưa phân tích video affiliate nào." }} />
   );
 
