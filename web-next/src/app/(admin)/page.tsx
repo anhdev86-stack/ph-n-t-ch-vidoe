@@ -28,10 +28,23 @@ export default function StoryboardPage() {
   const [data, setData] = useState<Storyboard | null>(null);
   const [err, setErr] = useState<string>("");
   const [active, setActive] = useState(0);
+  const [videoId, setVideoId] = useState<string>();
+  const [analyzing, setAnalyzing] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
-    api.get("/storyboard").then(setData).catch((e) => setErr(String(e.message || e)));
+    const p = new URLSearchParams(window.location.search);
+    const vid = p.get("video_id");
+    const vurl = p.get("video_url");
+    if (vid) {
+      setVideoId(vid); setAnalyzing(true); setErr("");
+      api.post("/analyze", { video_id: vid, video_url: vurl || undefined })
+        .then((r) => { if (r.error) setErr(r.error); else setData(r); })
+        .catch((e) => setErr(String(e.message || e)))
+        .finally(() => setAnalyzing(false));
+    } else {
+      api.get("/storyboard").then(setData).catch((e) => setErr(String(e.message || e)));
+    }
   }, []);
 
   const rows: Scene[] = useMemo(() => data?.kich_ban_video || [], [data]);
@@ -51,7 +64,17 @@ export default function StoryboardPage() {
     return () => v.removeEventListener("timeupdate", onTime);
   }, [segments]);
 
-  if (err) return <Alert type="error" message="Không tải được storyboard" description={err} showIcon />;
+  if (err) return <Alert type="error" message="Không phân tích được video" description={err} showIcon
+    action={<a onClick={() => history.back()}>Quay lại</a>} />;
+  if (analyzing) return (
+    <div style={{ padding: 56, textAlign: "center" }}>
+      <Spin size="large" />
+      <div style={{ marginTop: 16, color: "#888" }}>
+        Đang tải & phân tích video {videoId ? <code>{videoId}</code> : ""}…<br />
+        (tải video → tách khung hình → nhận diện lời thoại → Claude phân tích — có thể mất 1–3 phút)
+      </div>
+    </div>
+  );
   if (!data) return <div style={{ padding: 40, textAlign: "center" }}><Spin size="large" /></div>;
 
   const sa = data.giai_thich_diem_thanh_cong || { points: [], ky_thuat_quay_phim: "" };
@@ -84,7 +107,7 @@ export default function StoryboardPage() {
         <div style={{ width: 300, padding: 16, borderRight: "1px solid #f0f0f0" }}>
           <video
             ref={videoRef}
-            src={`${API_URL}/storyboard/video`}
+            src={videoId ? `${API_URL}/analyze/${videoId}/video` : `${API_URL}/storyboard/video`}
             controls
             playsInline
             style={{ width: "100%", borderRadius: 12, background: "#000", aspectRatio: "9/16", objectFit: "cover" }}

@@ -13,6 +13,8 @@ mvp/.venv/
 # Kết quả sinh ra & media nặng
 mvp/out/
 mvp/samples/*.mp4
+backend/analysis_videos/
+backend/analysis_cache/
 
 # Cấu hình local của Claude Code
 .claude/

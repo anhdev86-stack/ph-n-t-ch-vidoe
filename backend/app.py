@@ -133,6 +133,31 @@ def storyboard_video():  # không auth để thẻ <video> phát được
     return FileResponse(STORYBOARD_VIDEO, media_type="video/mp4")
 
 
+# ---------- Phân tích 1 video bất kỳ (từ tab Video Affiliate) ----------
+class AnalyzeBody(BaseModel):
+    video_id: str
+    video_url: str | None = None
+
+
+@app.post("/api/v1/analyze")
+def analyze(body: AnalyzeBody, user: dict = Depends(require_user)):
+    """Tải video + chạy pipeline (ASR + Claude) -> storyboard. Cache theo video_id."""
+    try:
+        import analyze as az
+        return az.analyze_video(body.video_id, body.video_url)
+    except Exception as e:  # noqa: BLE001
+        return JSONResponse({"error": str(e), "kich_ban_video": []}, status_code=200)
+
+
+@app.get("/api/v1/analyze/{video_id}/video")
+def analyzed_video(video_id: str):
+    import analyze as az
+    p = az.video_path(video_id)
+    if not os.path.exists(p):
+        return JSONResponse({"error": "no video"}, status_code=404)
+    return FileResponse(p, media_type="video/mp4")
+
+
 # ---------- Video Affiliate ----------
 def _first(d, *keys):
     for k in keys:

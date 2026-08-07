@@ -8,6 +8,7 @@ import {
 import type { ColumnsType } from "antd/es/table";
 import { SearchOutlined, DownloadOutlined, PlayCircleOutlined } from "@ant-design/icons";
 import dayjs, { Dayjs } from "dayjs";
+import { useRouter } from "next/navigation";
 import { api } from "../../../lib/api";
 
 const { RangePicker } = DatePicker;
@@ -42,6 +43,7 @@ export default function VideoAffPage() {
   const [products, setProducts] = useState<Record<string, ProdState>>({});
   const [bulk, setBulk] = useState<{ done: number; total: number } | null>(null);
   const [msg, ctx] = message.useMessage();
+  const router = useRouter();
 
   useEffect(() => {
     api.get("/tiktok/shops").then((r) => {
@@ -114,7 +116,13 @@ export default function VideoAffPage() {
   );
 
   const columns: ColumnsType<Video> = [
-    { title: "ID video", dataIndex: "videoId", width: 170, ellipsis: true },
+    { title: "ID video", dataIndex: "videoId", width: 180, ellipsis: true,
+      render: (id: string, v) => (
+        <a title="Phân tích video này"
+          onClick={() => router.push(`/?video_id=${id}&video_url=${encodeURIComponent(v.videoLink || "")}`)}>
+          {id}
+        </a>
+      ) },
     { title: "Link", dataIndex: "videoLink", width: 66, render: (u: string, v) =>
         u ? (
           <Popover trigger="hover" mouseEnterDelay={0.3} placement="right"
