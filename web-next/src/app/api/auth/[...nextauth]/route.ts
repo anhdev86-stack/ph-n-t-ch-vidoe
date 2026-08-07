@@ -5,8 +5,10 @@ import { jwtDecode } from "jwt-decode";
 // Login/refresh chạy SERVER-SIDE (trong container web) → gọi thẳng backend nội bộ.
 // Prod (Coolify): đặt API_PROXY_TARGET=http://api:8000 → API_URL=http://api:8000/api/v1
 // Dev: fallback NEXT_PUBLIC_API_URL (http://localhost:8000/api/v1).
-const API_URL = process.env.API_PROXY_TARGET
-  ? `${process.env.API_PROXY_TARGET}/api/v1`
+const _target = process.env.API_PROXY_TARGET
+  || (process.env.NODE_ENV === "production" ? "http://api:8000" : "");
+const API_URL = _target
+  ? `${_target}/api/v1`
   : (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1");
 
 interface JwtPayload {

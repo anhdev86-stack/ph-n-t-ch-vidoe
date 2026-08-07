@@ -11,9 +11,11 @@ const nextConfig: NextConfig = {
   typescript: { ignoreBuildErrors: true },
   // Prod (Coolify): mọi request /api/* được proxy sang container backend nội bộ
   // -> chỉ cần 1 domain video.infitech.vn, không dính CORS.
+  // LƯU Ý: Next "nướng" rewrite vào lúc BUILD (đọc env khi build), nên phải có
+  // giá trị mặc định http://api:8000 (tên service backend trong docker-compose).
+  // Ở dev, client gọi thẳng NEXT_PUBLIC_API_URL tuyệt đối nên rewrite này không bị chạm.
   async rewrites() {
-    const target = process.env.API_PROXY_TARGET; // vd http://api:8000
-    if (!target) return [];
+    const target = process.env.API_PROXY_TARGET || "http://api:8000";
     return [{ source: "/api/:path*", destination: `${target}/api/:path*` }];
   },
 };
