@@ -158,9 +158,10 @@ def _norm(item: dict) -> dict:
 
 
 @app.get("/api/v1/videos")
-def videos(page_size: int = 20, page_token: str | None = None, user: dict = Depends(require_user)):
+def videos(shop_id: str | None = None, page_size: int = 20, page_token: str | None = None,
+           user: dict = Depends(require_user)):
     try:
-        data = tiktok.get_affiliate_videos(page_size=page_size, page_token=page_token)
+        data = tiktok.get_affiliate_videos(shop_id=shop_id, page_size=page_size, page_token=page_token)
     except Exception as e:  # noqa: BLE001
         # trả 200 + {error} để frontend hiện đúng lý do (api.ts sẽ throw nếu non-2xx)
         return JSONResponse({"error": str(e), "videos": []})
@@ -183,14 +184,23 @@ class ConnectBody(BaseModel):
 
 @app.post("/api/v1/tiktok/connect")
 def tiktok_connect(body: ConnectBody, user: dict = Depends(require_user)):
-    """Nhận app_key/app_secret/auth_code từ form -> đổi & lưu token."""
+    """Nhận app_key/app_secret/auth_code từ form -> đổi token & THÊM shop mới."""
     try:
-        store = tiktok.connect(body.authCode, body.appKey, body.appSecret,
+        shop = tiktok.add_shop(body.authCode, body.appKey, body.appSecret,
                                body.serviceId, body.shopName, body.market)
     except Exception as e:  # noqa: BLE001
         return JSONResponse({"error": str(e), "connected": False}, status_code=200)
-    return {"connected": bool(store.get("access_token")),
-            "seller_name": store.get("seller_name", "")}
+    return {"connected": shop.get("connected", False), "shop": shop}
+
+
+@app.get("/api/v1/tiktok/shops")
+def tiktok_shops(user: dict = Depends(require_user)):
+    return {"shops": tiktok.list_shops()}
+
+
+@app.delete("/api/v1/tiktok/shops/{shop_id}")
+def tiktok_remove_shop(shop_id: str, user: dict = Depends(require_user)):
+    return {"removed": tiktok.remove_shop(shop_id)}
 
 
 @app.get("/api/v1/tiktok/status")
