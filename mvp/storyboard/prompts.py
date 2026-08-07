@@ -35,6 +35,10 @@ INPUT:
 - Transcript có timestamp (lời thoại): {{transcript}}
 - Mô tả hình ảnh theo mốc thời gian: {{visual}}
 
+NGÔN NGỮ: Toàn bộ output PHẢI bằng tiếng Việt. Nếu lời thoại đầu vào KHÔNG phải tiếng Việt \
+(video đối thủ nước ngoài), hãy DỊCH CHUẨN, tự nhiên sang tiếng Việt ở trường transcript của mỗi \
+đoạn (giữ nguyên mốc thời gian & ý nghĩa) — TUYỆT ĐỐI không để nguyên văn tiếng nước ngoài.
+
 NHIỆM VỤ:
 1. Cắt video thành các PHÂN ĐOẠN theo dòng chảy bán hàng. Mỗi đoạn gán section_type \
 trong: {" | ".join(SECTION_TYPES)} (không bắt buộc đủ hết, giữ đúng thứ tự tự nhiên của video).

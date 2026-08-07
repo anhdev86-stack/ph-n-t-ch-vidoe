@@ -18,10 +18,16 @@ sys.path.insert(0, MVP)
 
 CACHE = os.path.join(HERE, "analysis_cache")
 VIDEOS = os.path.join(HERE, "analysis_videos")
+UPLOADS = os.path.join(HERE, "uploads")
+
+
+def upload_path(video_id: str) -> str:
+    return os.path.join(UPLOADS, f"{video_id}.mp4")
 
 
 def video_path(video_id: str) -> str:
-    return os.path.join(VIDEOS, f"{video_id}.mp4")
+    up = upload_path(video_id)
+    return up if os.path.exists(up) else os.path.join(VIDEOS, f"{video_id}.mp4")
 
 
 def _map(mvp_result: dict) -> dict:
@@ -47,22 +53,26 @@ def analyze_video(video_id: str, video_url: str | None = None) -> dict:
     if os.path.exists(cache_file):
         return json.load(open(cache_file, encoding="utf-8"))
 
-    # 1) tải video
-    mp4 = video_path(video_id)
-    if not os.path.exists(mp4):
-        url = video_url or f"https://www.tiktok.com/@_/video/{video_id}"
-        r = subprocess.run([sys.executable, "-m", "yt_dlp", "-f", "mp4/best",
-                            "--no-playlist", "-o", mp4, url],
-                           capture_output=True, text=True)
-        if r.returncode != 0 or not os.path.exists(mp4):
-            raise RuntimeError(f"Tải video thất bại (yt-dlp): {r.stderr[-300:] or r.stdout[-300:]}")
+    # 1) nguồn video: file upload có sẵn, hoặc tải từ TikTok
+    is_upload = os.path.exists(upload_path(video_id))
+    if is_upload:
+        mp4 = upload_path(video_id)
+    else:
+        mp4 = os.path.join(VIDEOS, f"{video_id}.mp4")
+        if not os.path.exists(mp4):
+            url = video_url or f"https://www.tiktok.com/@_/video/{video_id}"
+            r = subprocess.run([sys.executable, "-m", "yt_dlp", "-f", "mp4/best",
+                                "--no-playlist", "-o", mp4, url],
+                               capture_output=True, text=True)
+            if r.returncode != 0 or not os.path.exists(mp4):
+                raise RuntimeError(f"Tải video thất bại (yt-dlp): {r.stderr[-300:] or r.stdout[-300:]}")
 
-    # 2) pipeline MVP
+    # 2) pipeline MVP. Video upload (đối thủ) -> auto nhận diện ngôn ngữ; prompt sẽ dịch sang tiếng Việt.
     from storyboard import media, asr, llm  # import trễ để backend khởi động không phụ thuộc
     with tempfile.TemporaryDirectory() as tmp:
         wav = media.extract_audio(mp4, os.path.join(tmp, "a.wav"))
         frames = media.extract_keyframes(mp4, os.path.join(tmp, "f"), interval=3.0)
-        transcript = asr.transcribe(wav)          # cần ASR backend
+        transcript = asr.transcribe(wav, language=None if is_upload else "vi")
         visual = llm.describe_frames(frames)       # Claude vision
         result = llm.segment_and_analyze(transcript, visual)
 

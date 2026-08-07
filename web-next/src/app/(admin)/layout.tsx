@@ -6,6 +6,7 @@ import {
   PlayCircleOutlined,
   AppstoreOutlined,
   ApiOutlined,
+  CloudUploadOutlined,
 } from "@ant-design/icons";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -43,6 +44,11 @@ export default function AdminLayout({
       label: <Link href="/video-aff">Video Affiliate</Link>,
     },
     {
+      key: "upload",
+      icon: <CloudUploadOutlined />,
+      label: <Link href="/upload">Upload video</Link>,
+    },
+    {
       key: "connect",
       icon: <ApiOutlined />,
       label: <Link href="/connect">Kết nối TikTok</Link>,
@@ -53,6 +59,7 @@ export default function AdminLayout({
   const getSelectedKey = () => {
     if (pathname === "/" || pathname === "") return "storyboard";
     if (pathname.startsWith("/video-aff")) return "video-aff";
+    if (pathname.startsWith("/upload")) return "upload";
     if (pathname.startsWith("/connect")) return "connect";
     return "";
   };

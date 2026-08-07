@@ -15,12 +15,14 @@ Chạy:
 """
 import json
 import os
+import shutil
 import sys
 import time
+import uuid
 from datetime import date, timedelta
 
 import jwt
-from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi import Depends, FastAPI, File, Header, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from pydantic import BaseModel
@@ -156,6 +158,56 @@ def analyzed_video(video_id: str):
     if not os.path.exists(p):
         return JSONResponse({"error": "no video"}, status_code=404)
     return FileResponse(p, media_type="video/mp4")
+
+
+# ---------- Upload video (phân tích video đối thủ) ----------
+UPLOADS = os.path.join(HERE, "uploads")
+UPLOAD_INDEX = os.path.join(UPLOADS, "index.json")
+
+
+def _upload_index() -> list:
+    if os.path.exists(UPLOAD_INDEX):
+        try:
+            return json.load(open(UPLOAD_INDEX, encoding="utf-8"))
+        except Exception:  # noqa: BLE001
+            pass
+    return []
+
+
+def _save_index(items: list):
+    os.makedirs(UPLOADS, exist_ok=True)
+    json.dump(items, open(UPLOAD_INDEX, "w", encoding="utf-8"), ensure_ascii=False)
+
+
+@app.post("/api/v1/uploads")
+def upload_video(file: UploadFile = File(...), user: dict = Depends(require_user)):
+    os.makedirs(UPLOADS, exist_ok=True)
+    vid = "up_" + uuid.uuid4().hex[:12]
+    dest = os.path.join(UPLOADS, f"{vid}.mp4")
+    with open(dest, "wb") as f:
+        shutil.copyfileobj(file.file, f)
+    rec = {"id": vid, "name": file.filename or f"{vid}.mp4",
+           "size": os.path.getsize(dest), "uploaded_at": int(time.time())}
+    items = _upload_index()
+    items.insert(0, rec)
+    _save_index(items)
+    return rec
+
+
+@app.get("/api/v1/uploads")
+def list_uploads(user: dict = Depends(require_user)):
+    return {"uploads": _upload_index()}
+
+
+@app.delete("/api/v1/uploads/{video_id}")
+def delete_upload(video_id: str, user: dict = Depends(require_user)):
+    items = [x for x in _upload_index() if x.get("id") != video_id]
+    _save_index(items)
+    for p in (os.path.join(UPLOADS, f"{video_id}.mp4"),
+              os.path.join(HERE, "analysis_cache", f"{video_id}.json")):
+        if os.path.exists(p):
+            os.remove(p)
+    return {"removed": True}
 
 
 # ---------- Video Affiliate ----------

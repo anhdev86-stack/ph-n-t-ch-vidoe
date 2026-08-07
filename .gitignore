@@ -15,6 +15,7 @@ mvp/out/
 mvp/samples/*.mp4
 backend/analysis_videos/
 backend/analysis_cache/
+backend/uploads/
 
 # Cấu hình local của Claude Code
 .claude/

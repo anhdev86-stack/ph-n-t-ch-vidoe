@@ -12,10 +12,11 @@ import shutil
 import subprocess
 
 
-def _from_faster_whisper(wav_path: str, model_size: str = "small"):
+def _from_faster_whisper(wav_path: str, model_size: str = "small", language: str | None = "vi"):
     from faster_whisper import WhisperModel  # import trong hàm để backend là tùy chọn
     model = WhisperModel(model_size, device="cpu", compute_type="int8")
-    segments, _ = model.transcribe(wav_path, language="vi", vad_filter=True)
+    # language=None -> tự nhận diện (dùng cho video đối thủ tiếng nước ngoài)
+    segments, _ = model.transcribe(wav_path, language=language, vad_filter=True)
     return [{"start": round(s.start, 1), "end": round(s.end, 1),
              "text": s.text.strip()} for s in segments]
 
@@ -70,8 +71,9 @@ def _parse_srt(path: str):
     return segs
 
 
-def transcribe(wav_path: str, model_size: str = "small", transcript_file: str | None = None):
-    """Chạy ASR với backend đầu tiên khả dụng."""
+def transcribe(wav_path: str, model_size: str = "small", transcript_file: str | None = None,
+               language: str | None = "vi"):
+    """Chạy ASR với backend đầu tiên khả dụng. language=None -> tự nhận diện."""
     if transcript_file:
         if transcript_file.lower().endswith(".json"):
             return json.load(open(transcript_file, encoding="utf-8"))
@@ -79,8 +81,8 @@ def transcribe(wav_path: str, model_size: str = "small", transcript_file: str | 
 
     try:
         import faster_whisper  # noqa: F401
-        print("  → ASR: faster-whisper")
-        return _from_faster_whisper(wav_path, model_size)
+        print(f"  → ASR: faster-whisper (lang={language or 'auto'})")
+        return _from_faster_whisper(wav_path, model_size, language)
     except ImportError:
         pass
 
