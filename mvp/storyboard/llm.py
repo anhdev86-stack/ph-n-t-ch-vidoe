@@ -8,8 +8,9 @@ import anthropic
 from . import prompts
 
 # Mặc định Claude Opus 5 (mạnh nhất). Đổi model qua env MODEL, vd MODEL=claude-sonnet-5 cho rẻ hơn.
-MODEL = os.environ.get("MODEL", "claude-opus-5")
-_client = anthropic.Anthropic()  # đọc ANTHROPIC_API_KEY từ môi trường
+MODEL = os.environ.get("MODEL", "claude-sonnet-5")
+# timeout cứng để 1 call chậm bất thường không treo mãi; max_retries=1 tránh nhân đôi thời gian
+_client = anthropic.Anthropic(timeout=180.0, max_retries=1)  # đọc ANTHROPIC_API_KEY từ môi trường
 
 
 def _img_block(path: str):

@@ -16,7 +16,7 @@ services:
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
       WEB_ORIGIN: https://video.infitech.vn
-      MODEL: ${MODEL:-claude-opus-5}
+      MODEL: ${MODEL:-claude-sonnet-5}
     expose:
       - "8000"
     volumes:

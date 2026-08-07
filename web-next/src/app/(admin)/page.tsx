@@ -86,7 +86,10 @@ export default function StoryboardPage() {
             return;
           }
           api.get(`/analysis/${vid}`)
-            .then((c) => { if (c?.kich_ban_video) { clearInterval(poll); finish(c); } })
+            .then((c) => {
+              if (c?.kich_ban_video) { clearInterval(poll); finish(c); }
+              else if (c?.error && !done) { clearInterval(poll); done = true; setErr(c.error); setAnalyzing(false); }
+            })
             .catch(() => {});
         }, 8000);
       }).catch((e) => setErr(String(e.message || e)));

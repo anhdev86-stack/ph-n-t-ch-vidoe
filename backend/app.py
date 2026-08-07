@@ -157,14 +157,41 @@ class AnalyzeBody(BaseModel):
     source: str = ""  # "tiktok" (aff) | "upload" (đối thủ)
 
 
+# Chạy phân tích trong nền -> POST trả về NGAY (không dính timeout proxy),
+# frontend poll /analysis/{id} tới khi có kết quả hoặc lỗi.
+import threading  # noqa: E402
+_jobs: dict[str, str] = {}  # video_id -> "running" | "error: ..."
+_jobs_lock = threading.Lock()
+
+
+def _run_analyze(video_id, video_url, title, source):
+    import analyze as az
+    try:
+        az.analyze_video(video_id, video_url, title, source)
+        with _jobs_lock:
+            _jobs.pop(video_id, None)
+    except Exception as e:  # noqa: BLE001
+        with _jobs_lock:
+            _jobs[video_id] = f"error: {e}"
+
+
 @app.post("/api/v1/analyze")
 def analyze(body: AnalyzeBody, user: dict = Depends(require_user)):
-    """Tải video + chạy pipeline (ASR + Claude) -> storyboard. Cache theo video_id."""
-    try:
-        import analyze as az
-        return az.analyze_video(body.video_id, body.video_url, body.title, body.source)
-    except Exception as e:  # noqa: BLE001
-        return JSONResponse({"error": str(e), "kich_ban_video": []}, status_code=200)
+    """Khởi chạy phân tích trong NỀN. Trả {status}. Kết quả lấy qua GET /analysis/{id}."""
+    import analyze as az
+    cached = az.get_cached(body.video_id)
+    if cached:
+        return cached
+    with _jobs_lock:
+        running = _jobs.get(body.video_id) == "running"
+        if not running:
+            _jobs[body.video_id] = "running"
+    if not running:
+        t = threading.Thread(target=_run_analyze,
+                             args=(body.video_id, body.video_url, body.title, body.source),
+                             daemon=True)
+        t.start()
+    return {"status": "processing", "kich_ban_video": []}
 
 
 class CommonItem(BaseModel):
@@ -195,7 +222,13 @@ def cached_analysis(video_id: str, user: dict = Depends(require_user)):
     """Đọc storyboard đã lưu (KHÔNG phân tích lại). {cached:false} nếu chưa có."""
     import analyze as az
     data = az.get_cached(video_id)
-    return data if data else JSONResponse({"cached": False})
+    if data:
+        return data
+    with _jobs_lock:
+        state = _jobs.get(video_id)
+    if state and state.startswith("error:"):
+        return JSONResponse({"cached": False, "error": state[7:].strip()})
+    return JSONResponse({"cached": False, "status": state or "idle"})
 
 
 @app.get("/api/v1/history")
