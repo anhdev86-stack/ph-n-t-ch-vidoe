@@ -8,9 +8,11 @@ import {
   ApiOutlined,
   CloudUploadOutlined,
   HistoryOutlined,
+  TeamOutlined,
 } from "@ant-design/icons";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
 import AppHeader from "../../components/Header/AppHeader";
 
 const { Sider, Content } = Layout;
@@ -25,7 +27,9 @@ export default function AdminLayout({
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const screens = useBreakpoint();
   const pathname = usePathname();
-  
+  const { data: session } = useSession();
+  const isAdmin = session?.user?.role === "admin";
+
   // Handle collapsing sidebar on smaller screens
   useEffect(() => {
     if (screens.md === false) {
@@ -54,11 +58,21 @@ export default function AdminLayout({
       icon: <HistoryOutlined />,
       label: <Link href="/history">Lịch sử phân tích</Link>,
     },
-    {
-      key: "connect",
-      icon: <ApiOutlined />,
-      label: <Link href="/connect">Kết nối TikTok</Link>,
-    },
+    // Chỉ admin: uỷ quyền TikTok + quản lý tài khoản
+    ...(isAdmin
+      ? [
+          {
+            key: "connect",
+            icon: <ApiOutlined />,
+            label: <Link href="/connect">Kết nối TikTok</Link>,
+          },
+          {
+            key: "users",
+            icon: <TeamOutlined />,
+            label: <Link href="/users">Quản lý tài khoản</Link>,
+          },
+        ]
+      : []),
   ];
 
   // Determine the selected key based on the current path
@@ -68,6 +82,7 @@ export default function AdminLayout({
     if (pathname.startsWith("/upload")) return "upload";
     if (pathname.startsWith("/history")) return "history";
     if (pathname.startsWith("/connect")) return "connect";
+    if (pathname.startsWith("/users")) return "users";
     return "";
   };
 

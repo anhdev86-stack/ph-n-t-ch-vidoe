@@ -3,9 +3,10 @@
 import React, { useEffect, useState } from "react";
 import {
   Row, Col, Card, Button, Form, Input, Radio, Tag, Typography, message,
-  List, Empty, Popconfirm, Avatar, Badge,
+  List, Empty, Popconfirm, Avatar, Badge, Result,
 } from "antd";
 import { ApiOutlined, ShopOutlined, DeleteOutlined, ReloadOutlined } from "@ant-design/icons";
+import { useSession } from "next-auth/react";
 import { api } from "../../../lib/api";
 import { generateTikTokAuthUrl } from "../../../utils/tiktokAuth";
 
@@ -18,6 +19,8 @@ interface Shop {
 }
 
 export default function ConnectPage() {
+  const { data: session, status } = useSession();
+  const isAdmin = session?.user?.role === "admin";
   const [shops, setShops] = useState<Shop[]>([]);
   const [loading, setLoading] = useState(true);
   const [market, setMarket] = useState<"global" | "us">("global");
@@ -55,6 +58,12 @@ export default function ConnectPage() {
     messageApi.success("Đã xoá shop");
     loadShops();
   };
+
+  // Chặn nhân viên (backend cũng đã trả 403 cho connect/xoá shop)
+  if (status === "authenticated" && !isAdmin) {
+    return <Result status="403" title="Không có quyền"
+      subTitle="Chỉ admin mới được uỷ quyền / quản lý shop TikTok." />;
+  }
 
   return (
     <>
