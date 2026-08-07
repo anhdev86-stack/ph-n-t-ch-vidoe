@@ -10,6 +10,7 @@ import { SearchOutlined, DownloadOutlined, PlayCircleOutlined } from "@ant-desig
 import dayjs, { Dayjs } from "dayjs";
 import { useRouter } from "next/navigation";
 import { api } from "../../../lib/api";
+import CommonAnalyze from "../../../components/CommonAnalyze";
 
 const { RangePicker } = DatePicker;
 const { Text } = Typography;
@@ -43,7 +44,12 @@ export default function VideoAffPage() {
   const [products, setProducts] = useState<Record<string, ProdState>>({});
   const [bulk, setBulk] = useState<{ done: number; total: number } | null>(null);
   const [msg, ctx] = message.useMessage();
+  const [selectedKeys, setSelectedKeys] = useState<React.Key[]>([]);
   const router = useRouter();
+
+  const selectedItems = videos
+    .filter((v) => selectedKeys.includes(v.videoId))
+    .map((v) => ({ video_id: v.videoId, source: "tiktok", video_url: v.videoLink, title: v.title }));
 
   useEffect(() => {
     api.get("/tiktok/shops").then((r) => {
@@ -189,6 +195,7 @@ export default function VideoAffPage() {
             <Button type="primary" ghost icon={<DownloadOutlined />} onClick={exportExcel} disabled={!videos.length}>
               Xuất Excel
             </Button>
+            <CommonAnalyze items={selectedItems} />
             {bulk && (
               <span style={{ color: "#888" }}>
                 Đang lấy sản phẩm ({bulk.done}/{bulk.total})…{" "}
@@ -200,6 +207,7 @@ export default function VideoAffPage() {
       )}
 
       <Table rowKey="videoId" columns={columns} dataSource={videos} loading={loading} size="small"
+        rowSelection={{ selectedRowKeys: selectedKeys, onChange: setSelectedKeys }}
         scroll={{ x: 1500 }} pagination={{ pageSize: 10, showSizeChanger: true, showTotal: (t) => `${t} video` }} />
     </Card>
   );

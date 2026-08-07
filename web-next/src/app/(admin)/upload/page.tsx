@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
 import { useAuth } from "../../../lib/auth";
 import { api } from "../../../lib/api";
+import CommonAnalyze from "../../../components/CommonAnalyze";
 
 const { Dragger } = Upload;
 const { Text } = Typography;
@@ -23,7 +24,12 @@ export default function UploadPage() {
   const router = useRouter();
   const [items, setItems] = useState<Up[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedKeys, setSelectedKeys] = useState<React.Key[]>([]);
   const [msg, ctx] = message.useMessage();
+
+  const selectedItems = items
+    .filter((r) => selectedKeys.includes(r.id))
+    .map((r) => ({ video_id: r.id, source: "upload", title: r.name }));
 
   const load = () => {
     setLoading(true);
@@ -99,7 +105,12 @@ export default function UploadPage() {
           Hỗ trợ video mọi ngôn ngữ. Bấm “Phân tích” — hệ thống tự bóc lời thoại, <b>dịch chuẩn sang tiếng Việt</b> rồi tạo storyboard.
         </p>
       </Dragger>
+      <Space style={{ marginBottom: 12 }}>
+        <CommonAnalyze items={selectedItems} />
+        {selectedItems.length > 0 && <Text type="secondary">Đã chọn {selectedItems.length} video</Text>}
+      </Space>
       <Table rowKey="id" columns={columns} dataSource={items} loading={loading}
+        rowSelection={{ selectedRowKeys: selectedKeys, onChange: setSelectedKeys }}
         pagination={{ pageSize: 10 }} locale={{ emptyText: "Chưa có video nào. Tải lên ở trên." }} />
     </Card>
   );

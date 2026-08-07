@@ -153,6 +153,29 @@ def analyze(body: AnalyzeBody, user: dict = Depends(require_user)):
         return JSONResponse({"error": str(e), "kich_ban_video": []}, status_code=200)
 
 
+class CommonItem(BaseModel):
+    video_id: str
+    source: str = ""
+    video_url: str | None = None
+    title: str = ""
+
+
+class CommonBody(BaseModel):
+    videos: list[CommonItem]
+
+
+@app.post("/api/v1/analyze-common")
+def analyze_common(body: CommonBody, user: dict = Depends(require_user)):
+    """Chọn nhiều video -> AI tìm điểm chung."""
+    if len(body.videos) < 2:
+        return JSONResponse({"error": "Chọn ít nhất 2 video."}, status_code=200)
+    try:
+        import analyze as az
+        return az.analyze_common([v.model_dump() for v in body.videos])
+    except Exception as e:  # noqa: BLE001
+        return JSONResponse({"error": str(e)}, status_code=200)
+
+
 @app.get("/api/v1/analysis/{video_id}")
 def cached_analysis(video_id: str, user: dict = Depends(require_user)):
     """Đọc storyboard đã lưu (KHÔNG phân tích lại). {cached:false} nếu chưa có."""

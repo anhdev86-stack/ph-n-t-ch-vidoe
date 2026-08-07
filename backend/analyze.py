@@ -72,6 +72,29 @@ def list_history() -> list:
     return sorted(_load_history(), key=lambda x: x.get("analyzed_at", 0), reverse=True)
 
 
+def analyze_common(items: list) -> dict:
+    """Lấy storyboard từng video (ưu tiên cache) rồi Claude tìm ĐIỂM CHUNG.
+    items: [{video_id, source?, video_url?, title?}]
+    """
+    briefs = []
+    for it in items:
+        vid = it.get("video_id")
+        sb = get_cached(vid) or analyze_video(vid, it.get("video_url"),
+                                              it.get("title", ""), it.get("source", ""))
+        briefs.append({
+            "title": it.get("title") or vid,
+            "phan_canh": [{"ten": s.get("phan_canh"), "co_canh": s.get("co_canh"),
+                           "loi_thoai": s.get("kich_ban_am_thanh")}
+                          for s in sb.get("kich_ban_video", [])],
+            "diem_thanh_cong": (sb.get("giai_thich_diem_thanh_cong") or {}).get("points", []),
+        })
+    from storyboard import llm
+    common = llm.find_common(briefs)
+    return {"count": len(briefs),
+            "videos": [{"video_id": it.get("video_id"), "title": it.get("title") or it.get("video_id")} for it in items],
+            "common": common}
+
+
 def get_cached(video_id: str) -> dict | None:
     """Đọc storyboard ĐÃ LƯU (không phân tích lại). None nếu chưa có."""
     cf = os.path.join(CACHE, f"{video_id}.json")

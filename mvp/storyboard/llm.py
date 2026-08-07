@@ -55,6 +55,21 @@ def segment_and_analyze(transcript, visual):
     return _loads(text)
 
 
+def find_common(video_briefs: list) -> dict:
+    """Tìm điểm chung giữa nhiều video (structured output)."""
+    prompt = prompts.COMMON_PROMPT.format(
+        n=len(video_briefs),
+        videos=json.dumps(video_briefs, ensure_ascii=False),
+    )
+    resp = _client.messages.create(
+        model=MODEL, max_tokens=4000,
+        output_config={"format": {"type": "json_schema", "schema": prompts.COMMON_SCHEMA}},
+        messages=[{"role": "user", "content": prompt}],
+    )
+    text = next((b.text for b in resp.content if b.type == "text"), "{}")
+    return _loads(text)
+
+
 def _loads(text: str) -> dict:
     """Parse JSON, chịu được trường hợp model bọc trong ```json ... ```."""
     text = text.strip()

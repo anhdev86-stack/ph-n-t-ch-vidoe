@@ -60,6 +60,33 @@ USP giải quyết nỗi đau, tạo niềm tin, khan hiếm + ưu đãi thúc C
 
 Trả về JSON đúng schema đã cho."""
 
+# --- Prompt tìm ĐIỂM CHUNG nhiều video ---
+COMMON_PROMPT = (
+    "Bạn là chuyên gia phân tích video bán hàng/affiliate TikTok. Dưới đây là storyboard "
+    "+ phân tích của {n} video (đã cắt phân cảnh, lời thoại, cỡ cảnh, điểm thành công).\n\n"
+    "DỮ LIỆU:\n{videos}\n\n"
+    "NHIỆM VỤ: Tìm ĐIỂM CHUNG — những mô-típ lặp lại giữa các video này (thứ khiến chúng "
+    "giống nhau về công thức thành công). Viết BẰNG TIẾNG VIỆT, cụ thể, có thể áp dụng ngay.\n"
+    "Trả về JSON: diem_chung (mảng 4-8 câu điểm chung nổi bật nhất), cau_truc_chung (khung kịch bản "
+    "lặp lại), hook_chung (cách mở đầu chung), thong_diep_chung (USP/thông điệp bán hàng chung), "
+    "ky_thuat_quay_chung (cỡ cảnh/chuyển động máy chung), goi_y (gợi ý làm 1 video mới bám công thức chung này)."
+)
+
+COMMON_SCHEMA = {
+    "type": "object",
+    "additionalProperties": False,
+    "required": ["diem_chung", "cau_truc_chung", "hook_chung", "thong_diep_chung",
+                 "ky_thuat_quay_chung", "goi_y"],
+    "properties": {
+        "diem_chung": {"type": "array", "items": {"type": "string"}},
+        "cau_truc_chung": {"type": "string"},
+        "hook_chung": {"type": "string"},
+        "thong_diep_chung": {"type": "string"},
+        "ky_thuat_quay_chung": {"type": "string"},
+        "goi_y": {"type": "string"},
+    },
+}
+
 # JSON schema cho structured output (Claude output_config.format)
 STORYBOARD_SCHEMA = {
     "type": "object",
