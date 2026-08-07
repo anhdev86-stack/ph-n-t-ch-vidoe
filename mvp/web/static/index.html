@@ -10,25 +10,25 @@
 <div class="app">
   <!-- SIDEBAR -->
   <aside class="sidebar">
-    <div class="brand"><span class="brand-logo">▶</span> Kaloclip</div>
+    <div class="brand"><span class="brand-logo" data-icon="brand"></span> Kaloclip</div>
     <nav class="nav">
-      <a class="nav-item"><span class="ic">🎬</span> AI Sáng tạo Video</a>
-      <a class="nav-item"><span class="ic">🔁</span> Làm lại video</a>
-      <a class="nav-item active"><span class="ic">🎞️</span> Video sang Storyboard</a>
-      <a class="nav-item"><span class="ic">💡</span> Trình viết kịch bản AI</a>
-      <a class="nav-item"><span class="ic">📤</span> Đăng TikTok</a>
+      <a class="nav-item"><span class="ic" data-icon="video"></span> AI Sáng tạo Video</a>
+      <a class="nav-item"><span class="ic" data-icon="redo"></span> Làm lại video</a>
+      <a class="nav-item active"><span class="ic" data-icon="clapper"></span> Video sang Storyboard</a>
+      <a class="nav-item"><span class="ic" data-icon="pen"></span> Trình viết kịch bản AI</a>
+      <a class="nav-item"><span class="ic" data-icon="share"></span> Đăng TikTok</a>
     </nav>
     <div class="sidebar-bottom">
-      <a class="nav-item"><span class="ic">📁</span> Thư viện</a>
-      <div class="credits"><span class="diamond">◆</span> <span id="credits">78.1</span></div>
-      <div class="user"><span class="avatar">H</span><span class="uname">Huyền Đào Thị T…</span><span class="chev">⌄</span></div>
+      <a class="nav-item"><span class="ic" data-icon="folder"></span> Thư viện</a>
+      <div class="credits"><span class="diamond" data-icon="gem"></span> <span id="credits">78.1</span></div>
+      <div class="user"><span class="avatar">H</span><span class="uname">Huyền Đào Thị T…</span><span class="chev" data-icon="chevron"></span></div>
     </div>
   </aside>
 
   <!-- MAIN -->
   <main class="main">
     <header class="topbar">
-      <button class="back" title="Quay lại">←</button>
+      <button class="back" title="Quay lại" data-icon="back"></button>
       <h1 class="title">Video sang Storyboard</h1>
       <div class="tabs">
         <button class="tab active" data-tab="script">Kịch bản video</button>
@@ -40,19 +40,19 @@
       <!-- CỘT VIDEO -->
       <section class="player-col">
         <div class="player">
-          <video id="video" playsinline preload="metadata" poster=""></video>
+          <video id="video" playsinline preload="metadata"></video>
           <div class="caption" id="caption"></div>
-          <button class="big-play" id="bigPlay">▶</button>
+          <button class="big-play" id="bigPlay" data-icon="play-fill"></button>
           <div class="controls">
-            <button id="playBtn">▶</button>
+            <button id="playBtn" data-icon="play-fill"></button>
             <span class="time"><span id="cur">00:00</span> / <span id="dur">00:00</span></span>
             <div class="spacer"></div>
-            <button id="muteBtn">🔊</button>
-            <button id="fsBtn">⛶</button>
+            <button id="muteBtn" data-icon="volume"></button>
+            <button id="fsBtn" data-icon="fullscreen"></button>
           </div>
           <div class="scrub"><div class="scrub-fill" id="scrubFill"></div></div>
         </div>
-        <div class="dl"><span>⤓ Tải video</span><span class="badge">Không LOGO</span></div>
+        <div class="dl"><span class="ic" data-icon="download"></span> Tải video <span class="badge">Không LOGO</span></div>
       </section>
 
       <!-- CỘT KẾT QUẢ -->
@@ -63,16 +63,16 @@
             <div class="thead">
               <div>Phân cảnh</div>
               <div>Mô tả hình ảnh <span class="q">?</span></div>
-              <div class="thead-script">Kịch bản âm thanh <button class="copy" id="copyAll">⧉ Sao chép</button></div>
+              <div class="thead-script">Kịch bản âm thanh <button class="copy" id="copyAll"><span class="ic" data-icon="copy"></span> Sao chép</button></div>
             </div>
             <div id="rows"></div>
           </div>
         </div>
         <!-- TAB 2: GIẢI THÍCH -->
         <div class="pane hidden" id="pane-success">
-          <h3 class="sc-h">✨ Giải thích điểm thành công</h3>
+          <h3 class="sc-h"><span class="ic" data-icon="sparkle"></span> Giải thích điểm thành công</h3>
           <ol class="points" id="points"></ol>
-          <h3 class="sc-h">🎬 Kỹ thuật quay phim</h3>
+          <h3 class="sc-h"><span class="ic" data-icon="clapper"></span> Kỹ thuật quay phim</h3>
           <p class="tech" id="tech"></p>
         </div>
       </section>
