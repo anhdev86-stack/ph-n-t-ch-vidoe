@@ -70,6 +70,21 @@ python run.py VIDEO [--transcript FILE] [--interval 3.0]
 - Dữ liệu lấy từ `GET /api/storyboard` (mặc định đọc `ground-truth/*.kalodata.json`), video từ `GET /api/video`.
 - **Đấu nối API video aff sau**: chỉ cần sửa hàm `load_storyboard()` (và 2 hằng `DATA_FILE`/`VIDEO_FILE`) trong `web/app.py` trỏ sang nguồn thật. Field JSON: `kich_ban_video[]` + `giai_thich_diem_thanh_cong{points, ky_thuat_quay_phim}`.
 
+## TikTok Shop — lấy list video affiliate
+
+Trang `/videos` hiển thị video creator gắn sản phẩm shop (open collaboration).
+
+```bash
+export TTS_APP_KEY=...      TTS_APP_SECRET=...      TTS_ACCESS_TOKEN=...
+./.venv/bin/uvicorn web.app:app --port 8000
+# mở http://localhost:8000/videos
+```
+
+- Client: `web/tiktok.py` — ký request chuẩn TikTok Shop Open API v2 (HMAC-SHA256), tự lấy `shop_cipher`.
+- Endpoint dùng: `GET /affiliate_seller/202412/open_collaborations/creator_content_details`.
+- Backend `/api/videos` chuẩn hoá field sang UI + trả kèm `raw_sample` (item gốc) để **chốt mapping** cho khớp response thật.
+- `TTS_ACCESS_TOKEN` là token của **shop đã ủy quyền** (lấy qua luồng OAuth của TikTok Shop). Nếu chưa có token thì cần chạy bước OAuth trước.
+
 ## Bí quyết nằm ở đâu
 
 3 khung taxonomy trong `storyboard/prompts.py`: cỡ cảnh (đóng), giai đoạn kịch bản affiliate (hook→cta), khung tâm lý bán hàng. Đây là phần "nạp" quyết định chất lượng — chỉnh ở đây trước.
