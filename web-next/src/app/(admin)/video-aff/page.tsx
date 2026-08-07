@@ -73,9 +73,36 @@ export default function VideoAffPage() {
   useEffect(() => {
     api.get("/tiktok/shops").then((r) => {
       setShops(r.shops || []);
-      if (r.shops?.[0]) setShopId(r.shops[0].id);
+      if (r.shops?.[0]) setShopId((cur) => cur || r.shops[0].id);
     }).catch(() => {});
   }, []);
+
+  // Khôi phục kết quả lần trước (không mất khi F5 / đổi tab)
+  const CACHE_KEY = "videoAffCache_v1";
+  useEffect(() => {
+    try {
+      const c = JSON.parse(localStorage.getItem(CACHE_KEY) || "null");
+      if (c && Array.isArray(c.videos) && c.videos.length) {
+        setVideos(c.videos);
+        setTotals(c.totals || null);
+        setProducts(c.products || {});
+        if (c.shopId) setShopId(c.shopId);
+        if (c.range?.length === 2) setRange([dayjs(c.range[0]), dayjs(c.range[1])]);
+      }
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Tự lưu mỗi khi dữ liệu đổi
+  useEffect(() => {
+    if (!videos.length) return;
+    try {
+      localStorage.setItem(CACHE_KEY, JSON.stringify({
+        videos, totals, products, shopId,
+        range: [range[0]?.toISOString?.(), range[1]?.toISOString?.()],
+      }));
+    } catch {}
+  }, [videos, totals, products, shopId, range]);
 
   const qsDates = () => {
     const [s, e] = range;
@@ -222,14 +249,14 @@ export default function VideoAffPage() {
       {err && <Alert type="error" showIcon style={{ marginBottom: 16 }} message="Không lấy được video"
         description={<>{err}<br /><Text type="secondary">Chọn shop đã kết nối ở tab “Kết nối TikTok”.</Text></>} />}
 
-      {totals && (
+      {videos.length > 0 && (
         <>
-          <Row gutter={16} style={{ marginBottom: 16 }}>
+          {totals && (<Row gutter={16} style={{ marginBottom: 16 }}>
             <Col xs={12} md={6}><Card><Statistic title="Tổng video" value={totals.count} /></Card></Col>
             <Col xs={12} md={6}><Card><Statistic title="GMV" value={numf(totals.gmv)} suffix="₫" /></Card></Col>
             <Col xs={12} md={6}><Card><Statistic title="Lượt xem" value={numf(totals.views)} /></Card></Col>
             <Col xs={12} md={6}><Card><Statistic title="CTR / CVR" value={`${totals.ctr}% / ${totals.cvr}%`} /></Card></Col>
-          </Row>
+          </Row>)}
           <Space style={{ marginBottom: 12 }} wrap>
             <Select allowClear showSearch style={{ minWidth: 260 }} value={productFilter}
               onChange={setProductFilter} options={productOptions} optionFilterProp="label"

@@ -42,6 +42,7 @@ export default function StoryboardPage() {
   const [active, setActive] = useState(0);
   const [videoId, setVideoId] = useState<string>();
   const [analyzing, setAnalyzing] = useState(false);
+  const [idle, setIdle] = useState(false);
   const [step, setStep] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -71,7 +72,8 @@ export default function StoryboardPage() {
           .finally(() => setAnalyzing(false));
       }).catch((e) => setErr(String(e.message || e)));
     } else {
-      api.get("/storyboard").then(setData).catch((e) => setErr(String(e.message || e)));
+      // Chưa chọn video -> KHÔNG nạp dữ liệu mẫu, hiện màn hướng dẫn trống
+      setIdle(true);
     }
   }, []);
 
@@ -116,6 +118,16 @@ export default function StoryboardPage() {
           );
         })}
       </div>
+    </Card>
+  );
+  if (idle && !data) return (
+    <Card style={{ maxWidth: 640, margin: "40px auto", textAlign: "center" }}>
+      <Title level={5}>Chưa có video để phân tích</Title>
+      <Paragraph type="secondary" style={{ marginBottom: 0 }}>
+        Vào tab <b>Video Affiliate</b> rồi bấm vào <b>ID video</b> để phân tích,
+        hoặc tab <b>Upload video</b> để tải video đối thủ lên và bấm “Phân tích”.
+        Kết quả kịch bản + giải thích điểm thành công sẽ hiện ở đây.
+      </Paragraph>
     </Card>
   );
   if (!data) return <div style={{ padding: 40, textAlign: "center" }}><Spin size="large" /></div>;
