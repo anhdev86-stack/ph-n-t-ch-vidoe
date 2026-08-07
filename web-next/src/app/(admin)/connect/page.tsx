@@ -21,8 +21,11 @@ export default function ConnectPage() {
   const [shops, setShops] = useState<Shop[]>([]);
   const [loading, setLoading] = useState(true);
   const [market, setMarket] = useState<"global" | "us">("global");
+  const [origin, setOrigin] = useState("");
   const [form] = Form.useForm();
   const [messageApi, ctx] = message.useMessage();
+
+  useEffect(() => { setOrigin(window.location.origin); }, []);
 
   const loadShops = () => {
     setLoading(true);
@@ -92,7 +95,7 @@ export default function ConnectPage() {
             </Form>
             <Text type="secondary">
               Cấu hình <b>Redirect URL</b> trong Partner Center trỏ về{" "}
-              <Text code>{typeof window !== "undefined" ? window.location.origin : ""}/callback</Text>
+              <Text code>{origin}/callback</Text>
             </Text>
           </Card>
         </Col>
