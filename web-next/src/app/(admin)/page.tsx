@@ -58,12 +58,18 @@ export default function StoryboardPage() {
     const vid = p.get("video_id");
     const vurl = p.get("video_url");
     if (vid) {
-      setVideoId(vid); setAnalyzing(true); setErr("");
-      api.post("/analyze", { video_id: vid, video_url: vurl || undefined,
-        title: p.get("title") || "", source: p.get("source") || "" })
-        .then((r) => { if (r.error) setErr(r.error); else setData(r); })
-        .catch((e) => setErr(String(e.message || e)))
-        .finally(() => setAnalyzing(false));
+      setVideoId(vid); setErr("");
+      // 1) Ưu tiên đọc bản ĐÃ LƯU — không phân tích lại, không tốn token
+      api.get(`/analysis/${vid}`).then((cached) => {
+        if (cached && cached.kich_ban_video) { setData(cached); return; }
+        // 2) Chưa có -> mới phân tích (hiện 8 bước)
+        setAnalyzing(true);
+        api.post("/analyze", { video_id: vid, video_url: vurl || undefined,
+          title: p.get("title") || "", source: p.get("source") || "" })
+          .then((r) => { if (r.error) setErr(r.error); else setData(r); })
+          .catch((e) => setErr(String(e.message || e)))
+          .finally(() => setAnalyzing(false));
+      }).catch((e) => setErr(String(e.message || e)));
     } else {
       api.get("/storyboard").then(setData).catch((e) => setErr(String(e.message || e)));
     }

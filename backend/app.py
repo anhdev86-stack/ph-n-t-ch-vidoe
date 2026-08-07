@@ -153,6 +153,14 @@ def analyze(body: AnalyzeBody, user: dict = Depends(require_user)):
         return JSONResponse({"error": str(e), "kich_ban_video": []}, status_code=200)
 
 
+@app.get("/api/v1/analysis/{video_id}")
+def cached_analysis(video_id: str, user: dict = Depends(require_user)):
+    """Đọc storyboard đã lưu (KHÔNG phân tích lại). {cached:false} nếu chưa có."""
+    import analyze as az
+    data = az.get_cached(video_id)
+    return data if data else JSONResponse({"cached": False})
+
+
 @app.get("/api/v1/history")
 def history(user: dict = Depends(require_user)):
     import analyze as az

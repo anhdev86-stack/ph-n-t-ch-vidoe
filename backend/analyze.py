@@ -72,6 +72,17 @@ def list_history() -> list:
     return sorted(_load_history(), key=lambda x: x.get("analyzed_at", 0), reverse=True)
 
 
+def get_cached(video_id: str) -> dict | None:
+    """Đọc storyboard ĐÃ LƯU (không phân tích lại). None nếu chưa có."""
+    cf = os.path.join(CACHE, f"{video_id}.json")
+    if os.path.exists(cf):
+        try:
+            return json.load(open(cf, encoding="utf-8"))
+        except Exception:  # noqa: BLE001
+            return None
+    return None
+
+
 def delete_history(video_id: str) -> bool:
     items = [x for x in _load_history() if x["video_id"] != video_id]
     _save_history(items)
