@@ -219,6 +219,16 @@ def analyzed_video(video_id: str):
     return FileResponse(p, media_type="video/mp4")
 
 
+@app.get("/api/v1/tiktok-video/{video_id}")
+def tiktok_video(video_id: str, url: str = ""):
+    """Xem video trên web (tải qua server) — kể cả video giỏ hàng TikTok chặn desktop."""
+    import analyze as az
+    p = az.ensure_downloaded(video_id, url)
+    if not p:
+        return JSONResponse({"error": "Không tải được video"}, status_code=502)
+    return FileResponse(p, media_type="video/mp4")
+
+
 # ---------- Upload video (phân tích video đối thủ) ----------
 UPLOADS = os.path.join(HERE, "uploads")
 UPLOAD_INDEX = os.path.join(UPLOADS, "index.json")

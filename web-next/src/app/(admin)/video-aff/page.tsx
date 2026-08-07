@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Card, Row, Col, Select, DatePicker, Button, Table, Statistic, Alert, Typography,
-  Popover, Spin, Progress, Space, message,
+  Popover, Spin, Progress, Space, message, Modal,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { SearchOutlined, DownloadOutlined, PlayCircleOutlined } from "@ant-design/icons";
@@ -14,6 +14,7 @@ import CommonAnalyze from "../../../components/CommonAnalyze";
 
 const { RangePicker } = DatePicker;
 const { Text } = Typography;
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
 
 interface Shop { id: string; shop_name: string; seller_name: string }
 interface Video {
@@ -46,6 +47,7 @@ export default function VideoAffPage() {
   const [msg, ctx] = message.useMessage();
   const [selectedKeys, setSelectedKeys] = useState<React.Key[]>([]);
   const [productFilter, setProductFilter] = useState<string>();
+  const [playing, setPlaying] = useState<{ id: string; url: string } | null>(null);
   const router = useRouter();
 
   // Danh sách sản phẩm (gom từ sản phẩm đã tải của các video) để làm bộ lọc
@@ -117,6 +119,7 @@ export default function VideoAffPage() {
       if (r.error) { setErr(r.error); return; }
       const list: Video[] = r.videos || [];
       setVideos(list); setTotals(r.totals || null);
+      if (r.truncated) msg.warning(`Range lớn — mới lấy ${list.length} video (một phần). Thu hẹp khoảng ngày để lấy đủ.`, 6);
       autoLoadProducts(list); // tự lấy sản phẩm song song, không cần bấm
     } catch (e) { setErr(String((e as Error).message || e)); }
     finally { setLoading(false); }
@@ -195,16 +198,12 @@ export default function VideoAffPage() {
           {id}
         </a>
       ) },
-    { title: "Link", dataIndex: "videoLink", width: 66, render: (u: string, v) =>
-        u ? (
-          <Popover trigger="hover" mouseEnterDelay={0.3} placement="right"
-            content={
-              <iframe title="preview" src={`https://www.tiktok.com/player/v1/${v.videoId}`}
-                width={240} height={420} style={{ border: 0, borderRadius: 8, display: "block" }}
-                allow="autoplay; encrypted-media; fullscreen" />
-            }>
-            <a href={u} target="_blank" rel="noopener"><PlayCircleOutlined /> Xem</a>
-          </Popover>
+    { title: "Xem", dataIndex: "videoLink", width: 72, render: (_u: string, v) =>
+        v.videoId ? (
+          <a onClick={() => setPlaying({ id: v.videoId, url: v.videoLink || "" })}
+            title="Phát video qua máy chủ (xem được cả video giỏ hàng bị TikTok chặn desktop)">
+            <PlayCircleOutlined /> Xem
+          </a>
         ) : "—" },
     { title: "Tiêu đề", dataIndex: "title", width: 240,
       onCell: () => ({ style: { maxWidth: 240 } }), render: clip },
@@ -282,6 +281,20 @@ export default function VideoAffPage() {
         sticky scroll={{ x: 1500, y: 560 }}
         pagination={{ defaultPageSize: 20, showSizeChanger: true,
           pageSizeOptions: [20, 50, 100], showTotal: (t) => `${t} video` }} />
+
+      <Modal open={!!playing} onCancel={() => setPlaying(null)} footer={null} width={380}
+        destroyOnClose title="Xem video" styles={{ body: { paddingTop: 8 } }}>
+        {playing && (
+          <video
+            src={`${API_URL}/tiktok-video/${playing.id}?url=${encodeURIComponent(playing.url)}`}
+            controls autoPlay playsInline
+            style={{ width: "100%", borderRadius: 8, background: "#000", aspectRatio: "9/16", objectFit: "contain" }}
+          />
+        )}
+        <div style={{ color: "#888", fontSize: 12, marginTop: 8 }}>
+          Video phát qua máy chủ (tải lần đầu vài giây, sau đó xem được cả video giỏ hàng).
+        </div>
+      </Modal>
     </Card>
   );
 }

@@ -30,6 +30,22 @@ def video_path(video_id: str) -> str:
     return up if os.path.exists(up) else os.path.join(VIDEOS, f"{video_id}.mp4")
 
 
+def ensure_downloaded(video_id: str, video_url: str = "") -> str | None:
+    """Trả path mp4 của video; nếu chưa có thì tải bằng yt-dlp (dùng để XEM trên web,
+    kể cả video giỏ hàng TikTok chặn trên desktop). None nếu tải thất bại."""
+    up = upload_path(video_id)
+    if os.path.exists(up):
+        return up
+    mp4 = os.path.join(VIDEOS, f"{video_id}.mp4")
+    if os.path.exists(mp4):
+        return mp4
+    os.makedirs(VIDEOS, exist_ok=True)
+    url = video_url or f"https://www.tiktok.com/@_/video/{video_id}"
+    r = subprocess.run([sys.executable, "-m", "yt_dlp", "-f", "mp4/best", "--no-playlist",
+                        "-o", mp4, url], capture_output=True, text=True)
+    return mp4 if (r.returncode == 0 and os.path.exists(mp4)) else None
+
+
 # ---------- lịch sử phân tích ----------
 import time  # noqa: E402
 
