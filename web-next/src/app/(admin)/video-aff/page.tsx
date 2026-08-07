@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Card, Row, Col, Select, DatePicker, Button, Table, Statistic, Alert, Typography,
   Popover, Spin, Progress, Space, message,
@@ -45,7 +45,26 @@ export default function VideoAffPage() {
   const [bulk, setBulk] = useState<{ done: number; total: number } | null>(null);
   const [msg, ctx] = message.useMessage();
   const [selectedKeys, setSelectedKeys] = useState<React.Key[]>([]);
+  const [productFilter, setProductFilter] = useState<string>();
   const router = useRouter();
+
+  // Danh sách sản phẩm (gom từ sản phẩm đã tải của các video) để làm bộ lọc
+  const productOptions = useMemo(() => {
+    const names = new Set<string>();
+    Object.values(products).forEach((p) => {
+      if (Array.isArray(p)) p.forEach((x) => { if (x?.name) names.add(x.name); });
+    });
+    return Array.from(names).sort().map((n) => ({ value: n, label: n }));
+  }, [products]);
+
+  // Video sau khi lọc theo sản phẩm (client-side, dùng sản phẩm đã tải)
+  const filteredVideos = useMemo(() => {
+    if (!productFilter) return videos;
+    return videos.filter((v) => {
+      const p = products[v.videoId];
+      return Array.isArray(p) && p.some((x) => x.name === productFilter);
+    });
+  }, [videos, products, productFilter]);
 
   const selectedItems = videos
     .filter((v) => selectedKeys.includes(v.videoId))
@@ -65,7 +84,7 @@ export default function VideoAffPage() {
   };
 
   const analyze = async () => {
-    setLoading(true); setErr(""); setVideos([]); setTotals(null); setProducts({});
+    setLoading(true); setErr(""); setVideos([]); setTotals(null); setProducts({}); setProductFilter(undefined);
     try {
       const r = await api.get(`/videos?${new URLSearchParams({ ...qsDates(), sort_field: "gmv" })}`);
       if (r.error) { setErr(r.error); return; }
@@ -121,7 +140,7 @@ export default function VideoAffPage() {
   const exportExcel = () => {
     const header = ["ID video", "Link", "Tiêu đề", "Người đăng", "Sản phẩm đã bán",
       "GMV", "Tiền tệ", "Đơn", "Lượt xem", "CTR (%)", "CVR (%)", "GPM", "Ngày đăng"];
-    const rows = videos.map((v) => {
+    const rows = filteredVideos.map((v) => {
       const p = products[v.videoId];
       const prod = Array.isArray(p) ? p.map((x) => x.name).join(" · ") : "";
       return [v.videoId, v.videoLink, v.title, v.username, prod, v.gmv, v.currency,
@@ -134,7 +153,7 @@ export default function VideoAffPage() {
     a.download = `video-affiliate-${dayjs().format("YYYYMMDD-HHmm")}.csv`;
     a.click();
     URL.revokeObjectURL(a.href);
-    msg.success(`Đã xuất ${videos.length} video`);
+    msg.success(`Đã xuất ${filteredVideos.length} video`);
   };
 
   const clip = (t: string) => (
@@ -197,7 +216,7 @@ export default function VideoAffPage() {
             notFoundContent="Chưa có shop — vào tab Kết nối TikTok" />
         </Col>
         <Col><RangePicker value={range} onChange={(r) => r && setRange(r as [Dayjs, Dayjs])} format="DD/MM/YYYY" /></Col>
-        <Col><Button type="primary" icon={<SearchOutlined />} loading={loading} onClick={analyze}>Phân tích</Button></Col>
+        <Col><Button type="primary" icon={<SearchOutlined />} loading={loading} onClick={analyze}>Lấy video</Button></Col>
       </Row>
 
       {err && <Alert type="error" showIcon style={{ marginBottom: 16 }} message="Không lấy được video"
@@ -212,7 +231,12 @@ export default function VideoAffPage() {
             <Col xs={12} md={6}><Card><Statistic title="CTR / CVR" value={`${totals.ctr}% / ${totals.cvr}%`} /></Card></Col>
           </Row>
           <Space style={{ marginBottom: 12 }} wrap>
-            <Button type="primary" ghost icon={<DownloadOutlined />} onClick={exportExcel} disabled={!videos.length}>
+            <Select allowClear showSearch style={{ minWidth: 260 }} value={productFilter}
+              onChange={setProductFilter} options={productOptions} optionFilterProp="label"
+              placeholder="Lọc theo sản phẩm"
+              notFoundContent={bulk ? "Đang tải sản phẩm…" : "Chưa có sản phẩm"} />
+            {productFilter && <Text type="secondary">{filteredVideos.length} video có sản phẩm này</Text>}
+            <Button type="primary" ghost icon={<DownloadOutlined />} onClick={exportExcel} disabled={!filteredVideos.length}>
               Xuất Excel
             </Button>
             <CommonAnalyze items={selectedItems} />
@@ -226,7 +250,7 @@ export default function VideoAffPage() {
         </>
       )}
 
-      <Table rowKey="videoId" columns={columns} dataSource={videos} loading={loading} size="small"
+      <Table rowKey="videoId" columns={columns} dataSource={filteredVideos} loading={loading} size="small"
         rowSelection={{ selectedRowKeys: selectedKeys, onChange: setSelectedKeys, preserveSelectedRowKeys: true }}
         sticky scroll={{ x: 1500, y: 560 }}
         pagination={{ defaultPageSize: 20, showSizeChanger: true,
