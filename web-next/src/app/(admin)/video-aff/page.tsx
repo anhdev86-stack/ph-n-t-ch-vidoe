@@ -288,11 +288,13 @@ export default function VideoAffPage() {
           <video
             src={`${API_URL}/tiktok-video/${playing.id}?url=${encodeURIComponent(playing.url)}`}
             controls autoPlay playsInline
+            onError={() => msg.error("Chưa tải được video này — thử lại hoặc mở trên TikTok.")}
             style={{ width: "100%", borderRadius: 8, background: "#000", aspectRatio: "9/16", objectFit: "contain" }}
           />
         )}
         <div style={{ color: "#888", fontSize: 12, marginTop: 8 }}>
-          Video phát qua máy chủ (tải lần đầu vài giây, sau đó xem được cả video giỏ hàng).
+          Video phát qua máy chủ (tải lần đầu vài giây).{" "}
+          {playing?.url && <a href={playing.url} target="_blank" rel="noopener">Mở trên TikTok ↗</a>}
         </div>
       </Modal>
     </Card>
