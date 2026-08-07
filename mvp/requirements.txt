@@ -1,6 +1,11 @@
 # Engine suy luận (bắt buộc)
 anthropic>=0.100.0
 
+# Web viewer (giao diện giống Kaloclip)
+fastapi>=0.110
+uvicorn[standard]>=0.29
+python-multipart>=0.0.9
+
 # ASR tiếng Việt (chọn 1 backend — xem README):
 #   Ưu tiên: faster-whisper (chạy CPU được, kén Python 3.14)
 faster-whisper>=1.0.0

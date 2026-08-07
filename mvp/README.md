@@ -58,6 +58,18 @@ python run.py VIDEO [--transcript FILE] [--interval 3.0]
 - `--force` bỏ qua cache, chạy lại
 - kết quả cache theo hash nội dung video → mở lại đọc cache, không gọi API lại
 
+## Giao diện web (viewer giống Kaloclip)
+
+```bash
+./.venv/bin/pip install fastapi "uvicorn[standard]" python-multipart
+./.venv/bin/uvicorn web.app:app --port 8000   # chạy từ thư mục mvp/
+# mở http://localhost:8000
+```
+
+- 2 tab: **Kịch bản video** (bảng 3 cột) + **Giải thích điểm thành công**, player có caption đồng bộ theo thời gian.
+- Dữ liệu lấy từ `GET /api/storyboard` (mặc định đọc `ground-truth/*.kalodata.json`), video từ `GET /api/video`.
+- **Đấu nối API video aff sau**: chỉ cần sửa hàm `load_storyboard()` (và 2 hằng `DATA_FILE`/`VIDEO_FILE`) trong `web/app.py` trỏ sang nguồn thật. Field JSON: `kich_ban_video[]` + `giai_thich_diem_thanh_cong{points, ky_thuat_quay_phim}`.
+
 ## Bí quyết nằm ở đâu
 
 3 khung taxonomy trong `storyboard/prompts.py`: cỡ cảnh (đóng), giai đoạn kịch bản affiliate (hook→cta), khung tâm lý bán hàng. Đây là phần "nạp" quyết định chất lượng — chỉnh ở đây trước.

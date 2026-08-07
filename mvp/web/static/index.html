@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Video sang Storyboard</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="brand"><span class="brand-logo">▶</span> Kaloclip</div>
+    <nav class="nav">
+      <a class="nav-item"><span class="ic">🎬</span> AI Sáng tạo Video</a>
+      <a class="nav-item"><span class="ic">🔁</span> Làm lại video</a>
+      <a class="nav-item active"><span class="ic">🎞️</span> Video sang Storyboard</a>
+      <a class="nav-item"><span class="ic">💡</span> Trình viết kịch bản AI</a>
+      <a class="nav-item"><span class="ic">📤</span> Đăng TikTok</a>
+    </nav>
+    <div class="sidebar-bottom">
+      <a class="nav-item"><span class="ic">📁</span> Thư viện</a>
+      <div class="credits"><span class="diamond">◆</span> <span id="credits">78.1</span></div>
+      <div class="user"><span class="avatar">H</span><span class="uname">Huyền Đào Thị T…</span><span class="chev">⌄</span></div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <header class="topbar">
+      <button class="back" title="Quay lại">←</button>
+      <h1 class="title">Video sang Storyboard</h1>
+      <div class="tabs">
+        <button class="tab active" data-tab="script">Kịch bản video</button>
+        <button class="tab" data-tab="success">Giải thích điểm thành công</button>
+      </div>
+    </header>
+
+    <div class="content">
+      <!-- CỘT VIDEO -->
+      <section class="player-col">
+        <div class="player">
+          <video id="video" playsinline preload="metadata" poster=""></video>
+          <div class="caption" id="caption"></div>
+          <button class="big-play" id="bigPlay">▶</button>
+          <div class="controls">
+            <button id="playBtn">▶</button>
+            <span class="time"><span id="cur">00:00</span> / <span id="dur">00:00</span></span>
+            <div class="spacer"></div>
+            <button id="muteBtn">🔊</button>
+            <button id="fsBtn">⛶</button>
+          </div>
+          <div class="scrub"><div class="scrub-fill" id="scrubFill"></div></div>
+        </div>
+        <div class="dl"><span>⤓ Tải video</span><span class="badge">Không LOGO</span></div>
+      </section>
+
+      <!-- CỘT KẾT QUẢ -->
+      <section class="result-col">
+        <!-- TAB 1: KỊCH BẢN -->
+        <div class="pane" id="pane-script">
+          <div class="table">
+            <div class="thead">
+              <div>Phân cảnh</div>
+              <div>Mô tả hình ảnh <span class="q">?</span></div>
+              <div class="thead-script">Kịch bản âm thanh <button class="copy" id="copyAll">⧉ Sao chép</button></div>
+            </div>
+            <div id="rows"></div>
+          </div>
+        </div>
+        <!-- TAB 2: GIẢI THÍCH -->
+        <div class="pane hidden" id="pane-success">
+          <h3 class="sc-h">✨ Giải thích điểm thành công</h3>
+          <ol class="points" id="points"></ol>
+          <h3 class="sc-h">🎬 Kỹ thuật quay phim</h3>
+          <p class="tech" id="tech"></p>
+        </div>
+      </section>
+    </div>
+
+    <div class="footer-actions">
+      <button class="btn ghost">Lưu vào thư viện</button>
+      <button class="btn ghost">Xuất kịch bản</button>
+      <button class="btn solid">Công cụ tối ưu kịch bản</button>
+    </div>
+  </main>
+</div>
+<script src="/static/app.js"></script>
+</body>
+</html>
