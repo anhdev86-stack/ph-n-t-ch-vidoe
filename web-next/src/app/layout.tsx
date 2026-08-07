@@ -14,6 +14,10 @@ export const metadata: Metadata = {
   description: "Infi Tech - Affiliate | Đơn hàng Affiliate TikTok Shop",
 };
 
+// App chạy động hoàn toàn (auth-gated, không cần SEO tĩnh). Tắt prerender tĩnh
+// để tránh crash "Invalid URL" khi build (NextAuth dựng URL lúc export /login).
+export const dynamic = "force-dynamic";
+
 export default function RootLayout({
   children,
 }: Readonly<{
