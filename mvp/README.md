@@ -83,7 +83,18 @@ export TTS_APP_KEY=...      TTS_APP_SECRET=...      TTS_ACCESS_TOKEN=...
 - Client: `web/tiktok.py` — ký request chuẩn TikTok Shop Open API v2 (HMAC-SHA256), tự lấy `shop_cipher`.
 - Endpoint dùng: `GET /affiliate_seller/202412/open_collaborations/creator_content_details`.
 - Backend `/api/videos` chuẩn hoá field sang UI + trả kèm `raw_sample` (item gốc) để **chốt mapping** cho khớp response thật.
-- `TTS_ACCESS_TOKEN` là token của **shop đã ủy quyền** (lấy qua luồng OAuth của TikTok Shop). Nếu chưa có token thì cần chạy bước OAuth trước.
+### Ủy quyền lấy token (OAuth — port từ project AFF Order)
+
+```
+Seller bấm ủy quyền  ──►  /auth/tiktok/login  ──►  services.tiktokshops.com/open/authorize
+      TikTok redirect về  ──►  /auth/tiktok/callback?code=<auth_code>
+      → token/get → lưu web/.tts_token.json (access+refresh) → về /videos
+```
+
+- Đặt `TTS_APP_KEY`, `TTS_APP_SECRET`, `TTS_SERVICE_ID`, rồi mở **http://localhost:8000/auth/tiktok/login**.
+- Cấu hình **Redirect URL** trong Partner Center trỏ về `.../auth/tiktok/callback`.
+- Token tự **refresh** khi gần hết hạn (`token/refresh`). Đã có sẵn token thì set `TTS_ACCESS_TOKEN`/`TTS_REFRESH_TOKEN` để bỏ qua bước ủy quyền.
+- Endpoint token: `auth.tiktok-shops.com/api/v2/token/{get,refresh}` (grant_type `authorized_code`/`refresh_token`) — giống hệt bản NestTiktok đã chạy thật.
 
 ## Bí quyết nằm ở đâu
 

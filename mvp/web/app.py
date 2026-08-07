@@ -13,7 +13,7 @@ import os
 import sys
 
 from fastapi import FastAPI
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 HERE = os.path.dirname(__file__)
@@ -106,3 +106,27 @@ def videos(page_size: int = 20, page_token: str | None = None):
 @app.get("/videos")
 def videos_page():
     return FileResponse(os.path.join(HERE, "static", "videos.html"))
+
+
+# ---------- OAuth TikTok Shop ----------
+@app.get("/auth/tiktok/login")
+def tiktok_login():
+    import tiktok
+    try:
+        return RedirectResponse(tiktok.authorize_url())
+    except Exception as e:  # noqa: BLE001
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@app.get("/auth/tiktok/callback")
+def tiktok_callback(code: str | None = None, auth_code: str | None = None):
+    """TikTok redirect về đây kèm ?code=<auth_code>. Đổi lấy token rồi về /videos."""
+    import tiktok
+    ac = code or auth_code
+    if not ac:
+        return JSONResponse({"error": "thiếu code (auth_code) trên callback"}, status_code=400)
+    try:
+        store = tiktok.get_access_token(ac)
+    except Exception as e:  # noqa: BLE001
+        return JSONResponse({"error": str(e)}, status_code=502)
+    return RedirectResponse(f"/videos?authorized={1 if store.get('access_token') else 0}")

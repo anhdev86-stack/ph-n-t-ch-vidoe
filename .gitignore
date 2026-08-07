@@ -1,7 +1,9 @@
 # Bí mật — TUYỆT ĐỐI không commit
 .env
+.env.aff
 *.key
 **/secrets*
+**/.tts_token.json
 
 # Python
 mvp/.venv/
