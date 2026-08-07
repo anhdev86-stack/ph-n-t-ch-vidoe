@@ -6,7 +6,7 @@ import {
   Popover, Spin, Progress, Space, message,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { SearchOutlined, ShoppingOutlined, PlayCircleOutlined } from "@ant-design/icons";
+import { SearchOutlined, DownloadOutlined, PlayCircleOutlined } from "@ant-design/icons";
 import dayjs, { Dayjs } from "dayjs";
 import { api } from "../../../lib/api";
 
@@ -61,9 +61,21 @@ export default function VideoAffPage() {
     try {
       const r = await api.get(`/videos?${new URLSearchParams({ ...qsDates(), sort_field: "gmv" })}`);
       if (r.error) { setErr(r.error); return; }
-      setVideos(r.videos || []); setTotals(r.totals || null);
+      const list: Video[] = r.videos || [];
+      setVideos(list); setTotals(r.totals || null);
+      autoLoadProducts(list); // tự lấy sản phẩm song song, không cần bấm
     } catch (e) { setErr(String((e as Error).message || e)); }
     finally { setLoading(false); }
+  };
+
+  // Tự động đổ sản phẩm cho các video có đơn (chạy nền, song song 4 luồng)
+  const autoLoadProducts = async (list: Video[]) => {
+    const targets = list.filter((v) => v.orders > 0);
+    if (!targets.length) return;
+    setBulk({ done: 0, total: targets.length });
+    let done = 0;
+    await pool(targets, async (v) => { await loadProducts(v.videoId); done++; setBulk({ done, total: targets.length }); }, 4);
+    setBulk(null);
   };
 
   const loadProducts = async (videoId: string) => {
@@ -74,13 +86,27 @@ export default function VideoAffPage() {
     } catch { setProducts((p) => ({ ...p, [videoId]: [] })); }
   };
 
-  const bulkLoad = async () => {
-    const targets = videos.filter((v) => v.orders > 0 && !products[v.videoId]);
-    if (!targets.length) { msg.info("Không có video nào có đơn (hoặc đã tải xong)."); return; }
-    setBulk({ done: 0, total: targets.length });
-    let done = 0;
-    await pool(targets, async (v) => { await loadProducts(v.videoId); done++; setBulk({ done, total: targets.length }); }, 4);
-    setBulk(null);
+  const csvCell = (s: unknown) => {
+    const t = s == null ? "" : String(s);
+    return /[",\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
+  };
+  const exportExcel = () => {
+    const header = ["ID video", "Link", "Tiêu đề", "Người đăng", "Sản phẩm đã bán",
+      "GMV", "Tiền tệ", "Đơn", "Lượt xem", "CTR (%)", "CVR (%)", "GPM", "Ngày đăng"];
+    const rows = videos.map((v) => {
+      const p = products[v.videoId];
+      const prod = Array.isArray(p) ? p.map((x) => x.name).join(" · ") : "";
+      return [v.videoId, v.videoLink, v.title, v.username, prod, v.gmv, v.currency,
+        v.orders, v.views, v.ctr, v.cvr, v.gpm, v.postedAt];
+    });
+    const csv = [header, ...rows].map((r) => r.map(csvCell).join(",")).join("\r\n");
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `video-affiliate-${dayjs().format("YYYYMMDD-HHmm")}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    msg.success(`Đã xuất ${videos.length} video`);
   };
 
   const clip = (t: string) => (
@@ -151,11 +177,16 @@ export default function VideoAffPage() {
             <Col xs={12} md={6}><Card><Statistic title="Lượt xem" value={numf(totals.views)} /></Card></Col>
             <Col xs={12} md={6}><Card><Statistic title="CTR / CVR" value={`${totals.ctr}% / ${totals.cvr}%`} /></Card></Col>
           </Row>
-          <Space style={{ marginBottom: 12 }}>
-            <Button icon={<ShoppingOutlined />} onClick={bulkLoad} loading={!!bulk}>
-              Lấy sản phẩm đã bán (video có đơn)
+          <Space style={{ marginBottom: 12 }} wrap>
+            <Button type="primary" ghost icon={<DownloadOutlined />} onClick={exportExcel} disabled={!videos.length}>
+              Xuất Excel
             </Button>
-            {bulk && <Progress percent={Math.round((bulk.done / bulk.total) * 100)} size="small" style={{ width: 180 }} />}
+            {bulk && (
+              <span style={{ color: "#888" }}>
+                Đang lấy sản phẩm ({bulk.done}/{bulk.total})…{" "}
+                <Progress percent={Math.round((bulk.done / bulk.total) * 100)} size="small" style={{ width: 150 }} />
+              </span>
+            )}
           </Space>
         </>
       )}
