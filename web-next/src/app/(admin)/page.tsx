@@ -2,10 +2,22 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Tabs, Table, Card, Tag, Spin, Alert, Typography } from "antd";
+import { CheckCircleFilled, LoadingOutlined } from "@ant-design/icons";
 import { api } from "../../lib/api";
 
 const { Title, Paragraph } = Typography;
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+
+const STEPS = [
+  "Trích xuất video",
+  "Phân loại video",
+  "Phân tích hình ảnh",
+  "Phân tích âm thanh",
+  "Nhận diện ngôn ngữ",
+  "Phân tích cấu trúc kịch bản",
+  "Khớp đặc điểm dữ liệu",
+  "Tạo kết quả cuối cùng",
+];
 
 interface Scene {
   phan_canh: string;
@@ -30,7 +42,16 @@ export default function StoryboardPage() {
   const [active, setActive] = useState(0);
   const [videoId, setVideoId] = useState<string>();
   const [analyzing, setAnalyzing] = useState(false);
+  const [step, setStep] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Tick dần các bước loading trong lúc phân tích (giống Kaloclip)
+  useEffect(() => {
+    if (!analyzing) return;
+    setStep(0);
+    const t = setInterval(() => setStep((s) => Math.min(s + 1, STEPS.length - 1)), 5500);
+    return () => clearInterval(t);
+  }, [analyzing]);
 
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
@@ -67,13 +88,28 @@ export default function StoryboardPage() {
   if (err) return <Alert type="error" message="Không phân tích được video" description={err} showIcon
     action={<a onClick={() => history.back()}>Quay lại</a>} />;
   if (analyzing) return (
-    <div style={{ padding: 56, textAlign: "center" }}>
-      <Spin size="large" />
-      <div style={{ marginTop: 16, color: "#888" }}>
-        Đang tải & phân tích video {videoId ? <code>{videoId}</code> : ""}…<br />
-        (tải video → tách khung hình → nhận diện lời thoại → Claude phân tích — có thể mất 1–3 phút)
+    <Card style={{ maxWidth: 560, margin: "40px auto" }}>
+      <Title level={5} style={{ marginBottom: 4 }}>Đang phân tích video</Title>
+      <Paragraph type="secondary" style={{ marginBottom: 20 }}>
+        {videoId ? <>Video <code>{videoId}</code> · </> : ""}có thể mất 1–3 phút, vui lòng giữ trang này.
+      </Paragraph>
+      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        {STEPS.map((label, i) => {
+          const done = i < step, activeStep = i === step;
+          return (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 12,
+              opacity: done || activeStep ? 1 : 0.4 }}>
+              <span style={{ width: 22, height: 22, display: "grid", placeItems: "center" }}>
+                {done ? <CheckCircleFilled style={{ color: "#52c41a", fontSize: 18 }} />
+                  : activeStep ? <LoadingOutlined style={{ color: "#B8912F", fontSize: 18 }} spin />
+                  : <span style={{ width: 14, height: 14, borderRadius: "50%", border: "2px solid #d9d9d9", display: "block" }} />}
+              </span>
+              <span style={{ fontWeight: activeStep ? 600 : 400 }}>{label}</span>
+            </div>
+          );
+        })}
       </div>
-    </div>
+    </Card>
   );
   if (!data) return <div style={{ padding: 40, textAlign: "center" }}><Spin size="large" /></div>;
 
