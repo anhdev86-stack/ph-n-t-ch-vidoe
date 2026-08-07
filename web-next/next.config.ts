@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   compress: true,
+  productionBrowserSourceMaps: false, // không xuất source map -> khó đọc code gốc
   // Không để lint/type-check chặn build production (Coolify). Lỗi lint vặt từ
   // các trang copy sẵn không được làm hỏng deploy.
   eslint: { ignoreDuringBuilds: true },

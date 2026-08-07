@@ -3,10 +3,12 @@
 import { SessionProvider } from "next-auth/react";
 import { ConfigProvider } from "antd";
 import { AntdRegistry } from "@ant-design/nextjs-registry";
+import AntiInspect from "../components/AntiInspect";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <SessionProvider>
+      <AntiInspect />
       <AntdRegistry>
         <ConfigProvider
           theme={{
