@@ -175,7 +175,84 @@ def _get_cipher(shop: dict) -> str:
     return shop["shop_cipher"]
 
 
-# ---------- Shop API ----------
+# ---------- Shop Video Analytics (toàn bộ video + GMV/đơn/view/CTR) ----------
+def _extract_video(v: dict) -> dict:
+    username = v.get("username") or (v.get("creator") or {}).get("user_name") or (v.get("creator") or {}).get("nick_name") or ""
+    raw_ctr = float(v.get("click_through_rate") or 0)
+    ctr = raw_ctr * 100 if raw_ctr <= 1 else raw_ctr  # về %
+    gmv = float((v.get("gmv") or {}).get("amount") or 0)
+    currency = (v.get("gmv") or {}).get("currency") or ""
+    orders = int(v.get("sku_orders") or 0)
+    views = int(v.get("views") or 0)
+    gpm_obj = v.get("gpm")
+    gpm = float(gpm_obj.get("amount")) if isinstance(gpm_obj, dict) else float(gpm_obj or 0)
+    if not gpm and views:  # tự tính nếu API không trả
+        gpm = gmv / views * 1000
+    clicks = views * ctr / 100
+    cvr = (orders / clicks * 100) if clicks else 0.0  # đơn / click
+    vid = v.get("id") or v.get("video_id") or ""
+    link = (f"https://www.tiktok.com/@{username}/video/{vid}" if username else f"https://www.tiktok.com/video/{vid}") if vid else ""
+    return {
+        "videoId": vid, "videoLink": link, "title": v.get("title") or "", "username": username,
+        "gmv": gmv, "currency": currency, "orders": orders, "itemsSold": int(v.get("items_sold") or 0),
+        "views": views, "ctr": round(ctr, 2), "cvr": round(cvr, 2), "gpm": round(gpm, 0),
+        "postedAt": v.get("video_post_time") or "",
+    }
+
+
+def _video_perf_page(shop, start_date, end_date_lt, page_size, page_token, sort_field, sort_order) -> dict:
+    q = {"shop_cipher": _get_cipher(shop), "start_date_ge": start_date,
+         "end_date_lt": end_date_lt, "page_size": min(page_size, 100),
+         "sort_field": sort_field, "sort_order": sort_order}
+    if page_token:
+        q["page_token"] = page_token
+    return _request("GET", SHOP_BASE, "/analytics/202605/shop_videos/performance",
+                    q, shop["app_key"], shop["app_secret"], access_token=_ensure_token(shop))
+
+
+def get_all_videos(shop_id, start_date, end_date_lt, sort_field="gmv",
+                   sort_order="DESC", max_pages=60) -> dict:
+    """Lấy TOÀN BỘ video (phân trang) trong khoảng ngày. start/end dạng YYYY-MM-DD."""
+    shop = _find(shop_id)
+    videos, token, pages, truncated = [], None, 0, False
+    while pages < max_pages:
+        data = _video_perf_page(shop, start_date, end_date_lt, 100, token, sort_field, sort_order)
+        d = data.get("data") or {}
+        items = d.get("videos") or d.get("shop_videos") or d.get("video_list") or []
+        videos.extend(_extract_video(v) for v in items)
+        token = d.get("next_page_token")
+        pages += 1
+        if not token:
+            break
+    else:
+        truncated = True
+    totals = {
+        "count": len(videos),
+        "gmv": round(sum(v["gmv"] for v in videos), 2),
+        "views": sum(v["views"] for v in videos),
+        "orders": sum(v["orders"] for v in videos),
+    }
+    total_clicks = sum(v["views"] * v["ctr"] / 100 for v in videos)
+    totals["ctr"] = round(total_clicks / totals["views"] * 100, 2) if totals["views"] else 0.0
+    totals["cvr"] = round(totals["orders"] / total_clicks * 100, 2) if total_clicks else 0.0
+    return {"videos": videos, "totals": totals, "truncated": truncated}
+
+
+def get_video_products(shop_id, video_id, start_date, end_date_lt) -> list[dict]:
+    """Sản phẩm đã bán trong 1 video."""
+    shop = _find(shop_id)
+    q = {"shop_cipher": _get_cipher(shop), "start_date_ge": start_date,
+         "end_date_lt": end_date_lt, "page_size": 50}
+    data = _request("GET", SHOP_BASE, f"/analytics/202509/shop_videos/{video_id}/products/performance",
+                    q, shop["app_key"], shop["app_secret"], access_token=_ensure_token(shop))
+    d = data.get("data") or {}
+    items = d.get("products") or d.get("product_list") or []
+    return [{"name": p.get("title") or p.get("product_name") or "",
+             "gmv": float((p.get("gmv") or {}).get("amount") or 0),
+             "unitsSold": int(p.get("units_sold") or 0)} for p in items]
+
+
+# ---------- (cũ) Affiliate open-collab creator content ----------
 def get_affiliate_videos(shop_id: str | None = None, page_size: int = 20, page_token: str | None = None) -> dict:
     shop = _find(shop_id)
     query = {"shop_cipher": _get_cipher(shop), "page_size": page_size}

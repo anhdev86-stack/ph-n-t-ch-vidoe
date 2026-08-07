@@ -17,6 +17,7 @@ import json
 import os
 import sys
 import time
+from datetime import date, timedelta
 
 import jwt
 from fastapi import Depends, FastAPI, Header, HTTPException
@@ -157,19 +158,34 @@ def _norm(item: dict) -> dict:
     }
 
 
+def _date_range(start_date: str | None, end_date: str | None):
+    today = date.today()
+    sd = start_date or str(today - timedelta(days=30))
+    ed = end_date or str(today)
+    ed_lt = str(date.fromisoformat(ed) + timedelta(days=1))  # end_date_lt loại trừ → +1
+    return sd, ed_lt
+
+
 @app.get("/api/v1/videos")
-def videos(shop_id: str | None = None, page_size: int = 20, page_token: str | None = None,
-           user: dict = Depends(require_user)):
+def videos(shop_id: str | None = None, start_date: str | None = None, end_date: str | None = None,
+           sort_field: str = "gmv", sort_order: str = "DESC", user: dict = Depends(require_user)):
+    """TOÀN BỘ video affiliate của shop trong khoảng ngày + tổng hợp chỉ số."""
+    sd, ed_lt = _date_range(start_date, end_date)
     try:
-        data = tiktok.get_affiliate_videos(shop_id=shop_id, page_size=page_size, page_token=page_token)
+        return tiktok.get_all_videos(shop_id, sd, ed_lt, sort_field, sort_order)
     except Exception as e:  # noqa: BLE001
-        # trả 200 + {error} để frontend hiện đúng lý do (api.ts sẽ throw nếu non-2xx)
-        return JSONResponse({"error": str(e), "videos": []})
-    d = data.get("data") or {}
-    items = _first(d, "contents", "videos", "content_list", "items") or []
-    return {"videos": [_norm(x) for x in items],
-            "next_page_token": _first(d, "next_page_token", "page_token"),
-            "raw_sample": items[0] if items else None}
+        return JSONResponse({"error": str(e), "videos": [], "totals": {}})
+
+
+@app.get("/api/v1/videos/{video_id}/products")
+def video_products(video_id: str, shop_id: str | None = None,
+                   start_date: str | None = None, end_date: str | None = None,
+                   user: dict = Depends(require_user)):
+    sd, ed_lt = _date_range(start_date, end_date)
+    try:
+        return {"products": tiktok.get_video_products(shop_id, video_id, sd, ed_lt)}
+    except Exception as e:  # noqa: BLE001
+        return JSONResponse({"error": str(e), "products": []})
 
 
 # ---------- TikTok OAuth ----------
