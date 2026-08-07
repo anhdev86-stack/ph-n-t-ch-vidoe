@@ -3,9 +3,10 @@
 #   docker build -f backend/Dockerfile .
 FROM python:3.12-slim
 
-# ffmpeg cho tách audio/keyframe; ca-certificates cho HTTPS
+# ffmpeg: tách audio/keyframe; ca-certificates: HTTPS
+# libgomp1: BẮT BUỘC cho ctranslate2/onnxruntime (lõi faster-whisper) — thiếu là import lỗi
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ffmpeg ca-certificates \
+    && apt-get install -y --no-install-recommends ffmpeg ca-certificates libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
