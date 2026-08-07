@@ -191,7 +191,7 @@ def analyze(body: AnalyzeBody, user: dict = Depends(require_user)):
                              args=(body.video_id, body.video_url, body.title, body.source),
                              daemon=True)
         t.start()
-    return {"status": "processing", "kich_ban_video": []}
+    return {"status": "processing"}
 
 
 class CommonItem(BaseModel):

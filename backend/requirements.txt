@@ -6,8 +6,8 @@ pydantic==2.10.4
 PyJWT==2.10.1
 httpx==0.28.1
 
-# LLM
-anthropic==0.42.0
+# LLM (0.120+ mới hỗ trợ output_config / structured output)
+anthropic==0.120.2
 
 # ASR (chạy CPU trên VPS)
 faster-whisper==1.1.1

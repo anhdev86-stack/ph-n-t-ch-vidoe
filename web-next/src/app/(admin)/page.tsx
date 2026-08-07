@@ -62,7 +62,7 @@ export default function StoryboardPage() {
       setVideoId(vid); setErr("");
       // 1) Ưu tiên đọc bản ĐÃ LƯU — không phân tích lại, không tốn token
       api.get(`/analysis/${vid}`).then((cached) => {
-        if (cached && cached.kich_ban_video) { setData(cached); return; }
+        if (cached?.kich_ban_video?.length) { setData(cached); return; }
         // 2) Chưa có -> phân tích (hiện 8 bước).
         // Phân tích lâu (tải model + ASR + Claude) có thể vượt timeout proxy -> request lỗi
         // NHƯNG backend vẫn chạy tới cùng & lưu cache. Nên: vừa gọi /analyze, vừa POLL
@@ -75,7 +75,7 @@ export default function StoryboardPage() {
         };
         api.post("/analyze", { video_id: vid, video_url: vurl || undefined,
           title: p.get("title") || "", source: p.get("source") || "" })
-          .then((r) => { if (r?.kich_ban_video) finish(r); })
+          .then((r) => { if (r?.kich_ban_video?.length) finish(r); })
           .catch(() => { /* nuốt lỗi timeout -> để polling lo */ });
         let tries = 0;
         const poll = setInterval(() => {
@@ -87,7 +87,7 @@ export default function StoryboardPage() {
           }
           api.get(`/analysis/${vid}`)
             .then((c) => {
-              if (c?.kich_ban_video) { clearInterval(poll); finish(c); }
+              if (c?.kich_ban_video?.length) { clearInterval(poll); finish(c); }
               else if (c?.error && !done) { clearInterval(poll); done = true; setErr(c.error); setAnalyzing(false); }
             })
             .catch(() => {});
