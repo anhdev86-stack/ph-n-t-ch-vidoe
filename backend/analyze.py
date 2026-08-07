@@ -30,6 +30,57 @@ def video_path(video_id: str) -> str:
     return up if os.path.exists(up) else os.path.join(VIDEOS, f"{video_id}.mp4")
 
 
+# ---------- lịch sử phân tích ----------
+import time  # noqa: E402
+
+HISTORY = os.path.join(CACHE, "history.json")
+
+
+def _load_history() -> list:
+    if os.path.exists(HISTORY):
+        try:
+            return json.load(open(HISTORY, encoding="utf-8"))
+        except Exception:  # noqa: BLE001
+            pass
+    return []
+
+
+def _save_history(items: list):
+    os.makedirs(CACHE, exist_ok=True)
+    json.dump(items, open(HISTORY, "w", encoding="utf-8"), ensure_ascii=False)
+
+
+def _detect_source(video_id: str) -> str:
+    return "upload" if os.path.exists(upload_path(video_id)) else "tiktok"
+
+
+def _record_history(video_id: str, source: str, title: str):
+    items = _load_history()
+    for it in items:
+        if it["video_id"] == video_id:            # đã có -> cập nhật nhẹ
+            if title:
+                it["title"] = title
+            it["source"] = source or it.get("source")
+            _save_history(items)
+            return
+    items.insert(0, {"video_id": video_id, "source": source,
+                     "title": title or video_id, "analyzed_at": int(time.time())})
+    _save_history(items)
+
+
+def list_history() -> list:
+    return sorted(_load_history(), key=lambda x: x.get("analyzed_at", 0), reverse=True)
+
+
+def delete_history(video_id: str) -> bool:
+    items = [x for x in _load_history() if x["video_id"] != video_id]
+    _save_history(items)
+    cf = os.path.join(CACHE, f"{video_id}.json")
+    if os.path.exists(cf):
+        os.remove(cf)
+    return True
+
+
 def _map(mvp_result: dict) -> dict:
     """MVP output -> field shape của frontend/Kaloclip."""
     kb = [{
@@ -46,11 +97,14 @@ def _map(mvp_result: dict) -> dict:
                 "ky_thuat_quay_phim": sa.get("filming_technique", "")}}
 
 
-def analyze_video(video_id: str, video_url: str | None = None) -> dict:
+def analyze_video(video_id: str, video_url: str | None = None,
+                  title: str = "", source: str = "") -> dict:
     os.makedirs(CACHE, exist_ok=True)
     os.makedirs(VIDEOS, exist_ok=True)
+    src = source or _detect_source(video_id)
     cache_file = os.path.join(CACHE, f"{video_id}.json")
     if os.path.exists(cache_file):
+        _record_history(video_id, src, title)
         return json.load(open(cache_file, encoding="utf-8"))
 
     # 1) nguồn video: file upload có sẵn, hoặc tải từ TikTok
@@ -78,4 +132,5 @@ def analyze_video(video_id: str, video_url: str | None = None) -> dict:
 
     mapped = _map(result)
     json.dump(mapped, open(cache_file, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+    _record_history(video_id, src, title)
     return mapped

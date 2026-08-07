@@ -59,7 +59,8 @@ export default function StoryboardPage() {
     const vurl = p.get("video_url");
     if (vid) {
       setVideoId(vid); setAnalyzing(true); setErr("");
-      api.post("/analyze", { video_id: vid, video_url: vurl || undefined })
+      api.post("/analyze", { video_id: vid, video_url: vurl || undefined,
+        title: p.get("title") || "", source: p.get("source") || "" })
         .then((r) => { if (r.error) setErr(r.error); else setData(r); })
         .catch((e) => setErr(String(e.message || e)))
         .finally(() => setAnalyzing(false));

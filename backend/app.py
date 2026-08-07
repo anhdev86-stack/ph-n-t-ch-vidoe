@@ -139,6 +139,8 @@ def storyboard_video():  # không auth để thẻ <video> phát được
 class AnalyzeBody(BaseModel):
     video_id: str
     video_url: str | None = None
+    title: str = ""
+    source: str = ""  # "tiktok" (aff) | "upload" (đối thủ)
 
 
 @app.post("/api/v1/analyze")
@@ -146,9 +148,21 @@ def analyze(body: AnalyzeBody, user: dict = Depends(require_user)):
     """Tải video + chạy pipeline (ASR + Claude) -> storyboard. Cache theo video_id."""
     try:
         import analyze as az
-        return az.analyze_video(body.video_id, body.video_url)
+        return az.analyze_video(body.video_id, body.video_url, body.title, body.source)
     except Exception as e:  # noqa: BLE001
         return JSONResponse({"error": str(e), "kich_ban_video": []}, status_code=200)
+
+
+@app.get("/api/v1/history")
+def history(user: dict = Depends(require_user)):
+    import analyze as az
+    return {"history": az.list_history()}
+
+
+@app.delete("/api/v1/history/{video_id}")
+def delete_history(video_id: str, user: dict = Depends(require_user)):
+    import analyze as az
+    return {"removed": az.delete_history(video_id)}
 
 
 @app.get("/api/v1/analyze/{video_id}/video")

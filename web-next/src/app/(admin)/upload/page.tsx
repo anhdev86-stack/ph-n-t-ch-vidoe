@@ -70,7 +70,7 @@ export default function UploadPage() {
           style={{ width: 90, height: 120, objectFit: "cover", borderRadius: 8, background: "#000", cursor: "pointer" }}
           onMouseEnter={(e) => (e.currentTarget as HTMLVideoElement).play().catch(() => {})}
           onMouseLeave={(e) => { const v = e.currentTarget as HTMLVideoElement; v.pause(); v.currentTime = 0; }}
-          onClick={() => router.push(`/?video_id=${id}`)} />
+          onClick={() => router.push(`/?video_id=${id}&source=upload`)} />
       ) },
     { title: "Tên file", dataIndex: "name", ellipsis: true },
     { title: "Dung lượng", dataIndex: "size", width: 120, render: fsize },
@@ -78,7 +78,8 @@ export default function UploadPage() {
       render: (t: number) => dayjs.unix(t).format("DD/MM/YYYY HH:mm") },
     { title: "", width: 220, render: (_: unknown, r: Up) => (
       <Space>
-        <Button type="primary" icon={<PlayCircleOutlined />} onClick={() => router.push(`/?video_id=${r.id}`)}>
+        <Button type="primary" icon={<PlayCircleOutlined />}
+          onClick={() => router.push(`/?video_id=${r.id}&source=upload&title=${encodeURIComponent(r.name)}`)}>
           Phân tích
         </Button>
         <Popconfirm title="Xoá video này?" okText="Xoá" cancelText="Huỷ" onConfirm={() => remove(r.id)}>

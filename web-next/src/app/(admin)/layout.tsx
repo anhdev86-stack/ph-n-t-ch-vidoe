@@ -7,6 +7,7 @@ import {
   AppstoreOutlined,
   ApiOutlined,
   CloudUploadOutlined,
+  HistoryOutlined,
 } from "@ant-design/icons";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -49,6 +50,11 @@ export default function AdminLayout({
       label: <Link href="/upload">Upload video</Link>,
     },
     {
+      key: "history",
+      icon: <HistoryOutlined />,
+      label: <Link href="/history">Lịch sử phân tích</Link>,
+    },
+    {
       key: "connect",
       icon: <ApiOutlined />,
       label: <Link href="/connect">Kết nối TikTok</Link>,
@@ -60,6 +66,7 @@ export default function AdminLayout({
     if (pathname === "/" || pathname === "") return "storyboard";
     if (pathname.startsWith("/video-aff")) return "video-aff";
     if (pathname.startsWith("/upload")) return "upload";
+    if (pathname.startsWith("/history")) return "history";
     if (pathname.startsWith("/connect")) return "connect";
     return "";
   };

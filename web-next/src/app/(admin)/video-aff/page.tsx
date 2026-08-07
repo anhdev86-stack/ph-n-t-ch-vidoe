@@ -119,7 +119,7 @@ export default function VideoAffPage() {
     { title: "ID video", dataIndex: "videoId", width: 180, ellipsis: true,
       render: (id: string, v) => (
         <a title="Phân tích video này"
-          onClick={() => router.push(`/?video_id=${id}&video_url=${encodeURIComponent(v.videoLink || "")}`)}>
+          onClick={() => router.push(`/?video_id=${id}&video_url=${encodeURIComponent(v.videoLink || "")}&source=tiktok&title=${encodeURIComponent(v.title || "")}`)}>
           {id}
         </a>
       ) },
