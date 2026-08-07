@@ -11,6 +11,7 @@ anthropic==0.42.0
 
 # ASR (chạy CPU trên VPS)
 faster-whisper==1.1.1
+requests==2.32.3        # faster-whisper utils.py cần (tải model/VAD)
 
 # Tải video TikTok
 yt-dlp==2025.1.15
