@@ -15,7 +15,7 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
-      WEB_ORIGIN: ${WEB_ORIGIN}
+      WEB_ORIGIN: https://video.infitech.vn
       MODEL: ${MODEL:-claude-opus-5}
     expose:
       - "8000"
@@ -36,12 +36,12 @@ services:
       dockerfile: Dockerfile
       args:
         NEXT_PUBLIC_API_URL: /api/v1
-        NEXTAUTH_URL: ${NEXTAUTH_URL}
+        NEXTAUTH_URL: https://video.infitech.vn
     restart: unless-stopped
     environment:
-      NEXTAUTH_URL: ${NEXTAUTH_URL}          # https://video.infitech.vn
-      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
-      API_PROXY_TARGET: http://api:8000      # web gọi backend nội bộ (login SSR + rewrite /api)
+      NEXTAUTH_URL: https://video.infitech.vn   # non-secret: hardcode để không bao giờ rỗng
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}        # SECRET: phải set ở Coolify
+      API_PROXY_TARGET: http://api:8000          # web gọi backend nội bộ (login SSR + rewrite /api)
     # Coolify: gán Domain video.infitech.vn cho service này, Port 3000.
     ports:
       - "3000"

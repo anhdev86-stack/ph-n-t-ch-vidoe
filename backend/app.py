@@ -29,6 +29,7 @@ from pydantic import BaseModel
 
 sys.path.insert(0, os.path.dirname(__file__))
 import tiktok  # noqa: E402
+import users  # noqa: E402
 
 HERE = os.path.dirname(__file__)
 ROOT = os.path.dirname(HERE)
@@ -87,6 +88,13 @@ def require_user(authorization: str = Header(default="")) -> dict:
     return payload
 
 
+def require_admin(user: dict = Depends(require_user)) -> dict:
+    """Chỉ admin: uỷ quyền TikTok + quản lý tài khoản."""
+    if user.get("role") != "admin":
+        raise HTTPException(403, "Chỉ admin mới có quyền dùng chức năng này")
+    return user
+
+
 # ---------- Auth ----------
 class LoginBody(BaseModel):
     userName: str
@@ -99,9 +107,10 @@ class RefreshBody(BaseModel):
 
 @app.post("/api/v1/auth/login")
 def login(body: LoginBody):
-    if body.userName != ADMIN_USER or body.password != ADMIN_PASS:
+    u = users.authenticate(body.userName, body.password)
+    if not u:
         raise HTTPException(401, "Sai tài khoản hoặc mật khẩu")
-    return _issue(body.userName)
+    return _issue(u["username"], u["role"])
 
 
 @app.post("/api/v1/auth/refresh")
@@ -326,7 +335,7 @@ class ConnectBody(BaseModel):
 
 
 @app.post("/api/v1/tiktok/connect")
-def tiktok_connect(body: ConnectBody, user: dict = Depends(require_user)):
+def tiktok_connect(body: ConnectBody, user: dict = Depends(require_admin)):
     """Nhận app_key/app_secret/auth_code từ form -> đổi token & THÊM shop mới."""
     try:
         shop = tiktok.add_shop(body.authCode, body.appKey, body.appSecret,
@@ -342,10 +351,54 @@ def tiktok_shops(user: dict = Depends(require_user)):
 
 
 @app.delete("/api/v1/tiktok/shops/{shop_id}")
-def tiktok_remove_shop(shop_id: str, user: dict = Depends(require_user)):
+def tiktok_remove_shop(shop_id: str, user: dict = Depends(require_admin)):
     return {"removed": tiktok.remove_shop(shop_id)}
 
 
 @app.get("/api/v1/tiktok/status")
 def tiktok_status(user: dict = Depends(require_user)):
     return tiktok.status()
+
+
+# ---------- Quản lý tài khoản (admin only) ----------
+class UserCreate(BaseModel):
+    username: str
+    password: str
+    role: str = "staff"
+
+
+class UserUpdate(BaseModel):
+    password: str | None = None
+    role: str | None = None
+    active: bool | None = None
+
+
+@app.get("/api/v1/users")
+def users_list(admin: dict = Depends(require_admin)):
+    return {"users": users.list_users()}
+
+
+@app.post("/api/v1/users")
+def users_create(body: UserCreate, admin: dict = Depends(require_admin)):
+    try:
+        return {"user": users.create_user(body.username, body.password, body.role)}
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.put("/api/v1/users/{username}")
+def users_update(username: str, body: UserUpdate, admin: dict = Depends(require_admin)):
+    try:
+        return {"user": users.update_user(username, body.password, body.role, body.active)}
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.delete("/api/v1/users/{username}")
+def users_delete(username: str, admin: dict = Depends(require_admin)):
+    if username == admin.get("sub"):
+        raise HTTPException(400, "Không thể tự xoá chính mình")
+    try:
+        return {"removed": users.delete_user(username)}
+    except ValueError as e:
+        raise HTTPException(400, str(e))
