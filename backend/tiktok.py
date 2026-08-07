@@ -246,18 +246,47 @@ def get_all_videos(shop_id, start_date, end_date_lt, sort_field="gmv",
     return {"videos": videos, "totals": totals, "truncated": truncated}
 
 
+# Cache tên sản phẩm theo product_id (API analytics chỉ trả id, phải gọi product detail lấy title)
+_PROD_NAME: dict[str, str] = {}
+
+
+def _product_name(shop: dict, cipher: str, pid: str) -> str:
+    if not pid:
+        return ""
+    if pid in _PROD_NAME:
+        return _PROD_NAME[pid]
+    name = ""
+    try:
+        d = _request("GET", SHOP_BASE, f"/product/202309/products/{pid}",
+                     {"shop_cipher": cipher}, shop["app_key"], shop["app_secret"],
+                     access_token=_ensure_token(shop))
+        name = ((d.get("data") or {}).get("title") or "").strip()
+    except Exception:  # noqa: BLE001
+        name = ""
+    _PROD_NAME[pid] = name
+    return name
+
+
 def get_video_products(shop_id, video_id, start_date, end_date_lt) -> list[dict]:
-    """Sản phẩm đã bán trong 1 video."""
+    """Sản phẩm đã bán trong 1 video. API analytics chỉ trả product_id -> tra tên qua product detail."""
     shop = _find(shop_id)
-    q = {"shop_cipher": _get_cipher(shop), "start_date_ge": start_date,
+    cipher = _get_cipher(shop)
+    q = {"shop_cipher": cipher, "start_date_ge": start_date,
          "end_date_lt": end_date_lt, "page_size": 50}
     data = _request("GET", SHOP_BASE, f"/analytics/202509/shop_videos/{video_id}/products/performance",
                     q, shop["app_key"], shop["app_secret"], access_token=_ensure_token(shop))
     d = data.get("data") or {}
     items = d.get("products") or d.get("product_list") or []
-    return [{"name": p.get("title") or p.get("product_name") or "",
-             "gmv": float((p.get("gmv") or {}).get("amount") or 0),
-             "unitsSold": int(p.get("units_sold") or 0)} for p in items]
+    out = []
+    for p in items:
+        pid = str(p.get("id") or p.get("product_id") or "")
+        out.append({
+            "name": _product_name(shop, cipher, pid) or (f"SP {pid}" if pid else ""),
+            "productId": pid,
+            "gmv": float((p.get("gmv") or {}).get("amount") or 0),
+            "unitsSold": int(p.get("units_sold") or 0),
+        })
+    return out
 
 
 # ---------- (cũ) Affiliate open-collab creator content ----------
