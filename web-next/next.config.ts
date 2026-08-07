@@ -16,7 +16,8 @@ const nextConfig: NextConfig = {
   // Ở dev, client gọi thẳng NEXT_PUBLIC_API_URL tuyệt đối nên rewrite này không bị chạm.
   async rewrites() {
     const target = process.env.API_PROXY_TARGET || "http://api:8000";
-    return [{ source: "/api/:path*", destination: `${target}/api/:path*` }];
+    // CHỈ proxy /api/v1/* sang backend. TUYỆT ĐỐI không đụng /api/auth/* của NextAuth.
+    return [{ source: "/api/v1/:path*", destination: `${target}/api/v1/:path*` }];
   },
 };
 
