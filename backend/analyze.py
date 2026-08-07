@@ -30,6 +30,17 @@ def video_path(video_id: str) -> str:
     return up if os.path.exists(up) else os.path.join(VIDEOS, f"{video_id}.mp4")
 
 
+def _has_video_stream(path: str) -> bool:
+    """ffprobe: file có luồng video không (tránh cache nhầm file audio-only -> đen hình)."""
+    try:
+        r = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0",
+                            "-show_entries", "stream=codec_type", "-of", "csv=p=0", path],
+                           capture_output=True, text=True, timeout=20)
+        return "video" in r.stdout
+    except Exception:  # noqa: BLE001
+        return True  # ffprobe lỗi -> cứ cho qua, không chặn
+
+
 def ensure_downloaded(video_id: str, video_url: str = "") -> str | None:
     """Trả path mp4 của video; nếu chưa có thì tải bằng yt-dlp (dùng để XEM trên web,
     kể cả video giỏ hàng TikTok chặn trên desktop). None nếu tải thất bại."""
@@ -38,10 +49,14 @@ def ensure_downloaded(video_id: str, video_url: str = "") -> str | None:
         return up
     mp4 = os.path.join(VIDEOS, f"{video_id}.mp4")
     if os.path.exists(mp4):
-        return mp4
+        if _has_video_stream(mp4):
+            return mp4
+        os.remove(mp4)  # file hỏng (audio-only) -> tải lại
     os.makedirs(VIDEOS, exist_ok=True)
     url = video_url or f"https://www.tiktok.com/@_/video/{video_id}"
-    r = subprocess.run([sys.executable, "-m", "yt_dlp", "-f", "mp4/best", "--no-playlist",
+    r = subprocess.run([sys.executable, "-m", "yt_dlp",
+                        "-f", "bv*+ba/b", "-S", "vcodec:h264,res,acodec:aac",
+                        "--merge-output-format", "mp4", "--no-playlist",
                         "-o", mp4, url], capture_output=True, text=True)
     return mp4 if (r.returncode == 0 and os.path.exists(mp4)) else None
 
@@ -165,8 +180,10 @@ def analyze_video(video_id: str, video_url: str | None = None,
         mp4 = os.path.join(VIDEOS, f"{video_id}.mp4")
         if not os.path.exists(mp4):
             url = video_url or f"https://www.tiktok.com/@_/video/{video_id}"
-            r = subprocess.run([sys.executable, "-m", "yt_dlp", "-f", "mp4/best",
-                                "--no-playlist", "-o", mp4, url],
+            r = subprocess.run([sys.executable, "-m", "yt_dlp",
+                                "-f", "bv*+ba/b", "-S", "vcodec:h264,res,acodec:aac",
+                                "--merge-output-format", "mp4", "--no-playlist",
+                                "-o", mp4, url],
                                capture_output=True, text=True)
             if r.returncode != 0 or not os.path.exists(mp4):
                 raise RuntimeError(f"Tải video thất bại (yt-dlp): {r.stderr[-300:] or r.stdout[-300:]}")
