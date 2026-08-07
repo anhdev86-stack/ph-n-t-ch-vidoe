@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import {
-  Card, Row, Col, Select, DatePicker, Button, Table, Statistic, Tag, Alert, Typography,
+  Card, Row, Col, Select, DatePicker, Button, Table, Statistic, Alert, Typography,
   Popover, Spin, Progress, Space, message,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import {
-  Card, Upload, Table, Button, Popconfirm, Typography, message, Tag, Space,
+  Card, Upload, Table, Button, Popconfirm, Typography, message, Space,
 } from "antd";
 import type { UploadProps } from "antd";
 import { InboxOutlined, PlayCircleOutlined, DeleteOutlined } from "@ant-design/icons";
