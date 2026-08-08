@@ -231,16 +231,11 @@ def analyze_video(video_id: str, video_url: str | None = None,
     if is_upload:
         mp4 = upload_path(video_id)
     else:
-        mp4 = os.path.join(VIDEOS, f"{video_id}.mp4")
-        if not os.path.exists(mp4):
-            url = video_url or f"https://www.tiktok.com/@_/video/{video_id}"
-            r = subprocess.run([sys.executable, "-m", "yt_dlp",
-                                "-f", "bv*+ba/b", "-S", "vcodec:h264,res,acodec:aac",
-                                "--merge-output-format", "mp4", "--no-playlist",
-                                "-o", mp4, url],
-                               capture_output=True, text=True)
-            if r.returncode != 0 or not os.path.exists(mp4):
-                raise RuntimeError(f"Tải video thất bại (yt-dlp): {r.stderr[-300:] or r.stdout[-300:]}")
+        # tải qua tikwm (lấy được cả video giỏ hàng, có luồng hình để cắt keyframe);
+        # ensure_downloaded tự bỏ file audio-only cũ đang cache và tải lại.
+        mp4 = ensure_downloaded(video_id, video_url or "")
+        if not mp4:
+            raise RuntimeError("Tải video thất bại — TikTok chặn hoặc video riêng tư/đã xoá.")
 
     # 2) pipeline MVP. Video upload (đối thủ) -> auto nhận diện ngôn ngữ; prompt sẽ dịch sang tiếng Việt.
     from storyboard import media, asr, llm  # import trễ để backend khởi động không phụ thuộc
