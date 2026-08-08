@@ -13,6 +13,7 @@ anthropic==0.120.2
 faster-whisper==1.1.1
 requests==2.32.3        # faster-whisper utils.py cần (tải model/VAD)
 
-# Tải video TikTok. [default] kéo theo curl_cffi ĐÚNG phiên bản cho "impersonation"
-# -> TikTok mới trả luồng VIDEO (thiếu/lệch version -> chỉ có audio, đen hình).
+# Tải video TikTok + impersonation. curl_cffi 0.12 khớp yt-dlp 2026.7 (0.16 quá mới -> targets unavailable).
+# LƯU Ý: video giỏ hàng/affiliate TikTok chỉ lộ luồng AUDIO -> xem bằng player nhúng TikTok ở frontend.
 yt-dlp[default]>=2026.7.4
+curl_cffi==0.12.0

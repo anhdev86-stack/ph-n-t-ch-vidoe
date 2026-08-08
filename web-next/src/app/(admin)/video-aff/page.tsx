@@ -282,19 +282,20 @@ export default function VideoAffPage() {
         pagination={{ defaultPageSize: 20, showSizeChanger: true,
           pageSizeOptions: [20, 50, 100], showTotal: (t) => `${t} video` }} />
 
-      <Modal open={!!playing} onCancel={() => setPlaying(null)} footer={null} width={380}
+      <Modal open={!!playing} onCancel={() => setPlaying(null)} footer={null} width={340}
         destroyOnClose title="Xem video" styles={{ body: { paddingTop: 8 } }}>
         {playing && (
-          <video
-            src={`${API_URL}/tiktok-video/${playing.id}?url=${encodeURIComponent(playing.url)}`}
-            controls autoPlay playsInline
-            onError={() => msg.error("Chưa tải được video này — thử lại hoặc mở trên TikTok.")}
-            style={{ width: "100%", borderRadius: 8, background: "#000", aspectRatio: "9/16", objectFit: "contain" }}
+          <iframe
+            title="tiktok-player"
+            src={`https://www.tiktok.com/player/v1/${playing.id}?music_info=1&description=1&autoplay=1`}
+            style={{ width: "100%", height: 560, border: 0, borderRadius: 8, background: "#000" }}
+            allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
           />
         )}
         <div style={{ color: "#888", fontSize: 12, marginTop: 8 }}>
-          Video phát qua máy chủ (tải lần đầu vài giây).{" "}
-          {playing?.url && <a href={playing.url} target="_blank" rel="noopener">Mở trên TikTok ↗</a>}
+          Phát bằng player chính thức của TikTok.{" "}
+          {playing?.url && <a href={playing.url} target="_blank" rel="noopener">Mở trên TikTok ↗</a>}{" "}
+          (nếu video bị TikTok khoá nhúng, hãy mở trên TikTok).
         </div>
       </Modal>
     </Card>
