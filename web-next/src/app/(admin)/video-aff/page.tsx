@@ -202,7 +202,7 @@ export default function VideoAffPage() {
     { title: "Xem", dataIndex: "videoLink", width: 72, render: (_u: string, v) =>
         v.videoId ? (
           <a onClick={() => setPlaying({ id: v.videoId, url: v.videoLink || "" })}
-            title="Phát video qua máy chủ (xem được cả video giỏ hàng bị TikTok chặn desktop)">
+            title="Phát bằng player chính thức TikTok (xem được cả video giỏ hàng)">
             <PlayCircleOutlined /> Xem
           </a>
         ) : "—" },
@@ -283,18 +283,19 @@ export default function VideoAffPage() {
         pagination={{ defaultPageSize: 20, showSizeChanger: true,
           pageSizeOptions: [20, 50, 100], showTotal: (t) => `${t} video` }} />
 
-      <Modal open={!!playing} onCancel={() => setPlaying(null)} footer={null} width={340}
+      <Modal open={!!playing} onCancel={() => setPlaying(null)} footer={null} width={360}
         destroyOnClose title="Xem video" styles={{ body: { paddingTop: 8 } }}>
         {playing && (
-          <video
-            src={`${API_URL}/tiktok-video/${playing.id}?url=${encodeURIComponent(playing.url)}${shopId ? `&shop_id=${shopId}` : ""}`}
-            controls autoPlay playsInline
-            onError={() => msg.error("Chưa tải được video — kiểm tra đã dán cookies TikTok cho shop ở tab Kết nối chưa (video giỏ hàng cần cookies).")}
-            style={{ width: "100%", borderRadius: 8, background: "#000", aspectRatio: "9/16", objectFit: "contain" }}
+          <iframe
+            src={`https://www.tiktok.com/embed/v2/${playing.id}`}
+            title="TikTok video"
+            allow="autoplay; encrypted-media; fullscreen"
+            allowFullScreen
+            style={{ width: "100%", height: 740, border: 0, borderRadius: 8, background: "#000" }}
           />
         )}
         <div style={{ color: "#888", fontSize: 12, marginTop: 8 }}>
-          Phát qua máy chủ (tải lần đầu vài giây, dùng cookies TikTok của shop cho video giỏ hàng).{" "}
+          Phát bằng player chính thức TikTok (xem được cả video giỏ hàng).{" "}
           {playing?.url && <a href={playing.url} target="_blank" rel="noopener">Mở trên TikTok ↗</a>}
         </div>
       </Modal>
