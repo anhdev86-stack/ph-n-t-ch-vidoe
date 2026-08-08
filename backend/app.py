@@ -253,12 +253,15 @@ def analyzed_video(video_id: str):
 
 
 @app.get("/api/v1/tiktok-video/{video_id}")
-def tiktok_video(video_id: str, url: str = ""):
-    """Xem video trên web (tải qua server) — kể cả video giỏ hàng TikTok chặn desktop."""
+def tiktok_video(video_id: str, url: str = "", shop_id: str = ""):
+    """Xem video trên web (tải qua server). Dùng cookies TikTok của shop -> tải được video giỏ hàng."""
     import analyze as az
-    p = az.ensure_downloaded(video_id, url)
+    cookies = tiktok.get_cookies(shop_id)
+    p = az.ensure_downloaded(video_id, url, cookies)
     if not p:
-        return JSONResponse({"error": "Không tải được video"}, status_code=502)
+        msg = "Không tải được video." if cookies else \
+              "Không tải được video giỏ hàng — hãy dán cookies TikTok cho shop ở tab 'Kết nối TikTok'."
+        return JSONResponse({"error": msg}, status_code=502)
     return FileResponse(p, media_type="video/mp4")
 
 
@@ -396,6 +399,16 @@ def tiktok_shops(user: dict = Depends(require_user)):
 @app.delete("/api/v1/tiktok/shops/{shop_id}")
 def tiktok_remove_shop(shop_id: str, user: dict = Depends(require_admin)):
     return {"removed": tiktok.remove_shop(shop_id)}
+
+
+class CookiesBody(BaseModel):
+    cookies: str = ""
+
+
+@app.put("/api/v1/tiktok/shops/{shop_id}/cookies")
+def set_shop_cookies(shop_id: str, body: CookiesBody, admin: dict = Depends(require_admin)):
+    """Dán cookies TikTok (Netscape cookies.txt) cho shop -> xem/tải được video giỏ hàng."""
+    return {"ok": tiktok.set_cookies(shop_id, body.cookies)}
 
 
 @app.get("/api/v1/tiktok/status")

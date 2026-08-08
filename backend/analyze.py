@@ -41,9 +41,10 @@ def _has_video_stream(path: str) -> bool:
         return True  # ffprobe lỗi -> cứ cho qua, không chặn
 
 
-def ensure_downloaded(video_id: str, video_url: str = "") -> str | None:
-    """Trả path mp4 của video; nếu chưa có thì tải bằng yt-dlp (dùng để XEM trên web,
-    kể cả video giỏ hàng TikTok chặn trên desktop). None nếu tải thất bại."""
+def ensure_downloaded(video_id: str, video_url: str = "", cookies: str = "") -> str | None:
+    """Trả path mp4 của video; tải bằng yt-dlp nếu chưa có. cookies (Netscape) = phiên
+    đăng nhập TikTok của shop -> tải được cả video GIỎ HÀNG (TikTok chỉ trả video khi đã login).
+    None nếu tải thất bại."""
     up = upload_path(video_id)
     if os.path.exists(up):
         return up
@@ -54,11 +55,23 @@ def ensure_downloaded(video_id: str, video_url: str = "") -> str | None:
         os.remove(mp4)  # file hỏng (audio-only) -> tải lại
     os.makedirs(VIDEOS, exist_ok=True)
     url = video_url or f"https://www.tiktok.com/@_/video/{video_id}"
-    r = subprocess.run([sys.executable, "-m", "yt_dlp",
-                        "-f", "bv*+ba/b", "-S", "vcodec:h264,res,acodec:aac",
-                        "--merge-output-format", "mp4", "--no-playlist",
-                        "-o", mp4, url], capture_output=True, text=True)
-    return mp4 if (r.returncode == 0 and os.path.exists(mp4)) else None
+    args = [sys.executable, "-m", "yt_dlp",
+            "-f", "bv*+ba/b", "-S", "vcodec:h264,res,acodec:aac",
+            "--merge-output-format", "mp4", "--no-playlist",
+            "--impersonate", "chrome"]  # giả lập trình duyệt (cần curl_cffi)
+    ck_file = None
+    if cookies and cookies.strip():
+        ck_file = os.path.join(VIDEOS, f".ck_{video_id}.txt")
+        with open(ck_file, "w", encoding="utf-8") as f:
+            f.write(cookies)
+        args += ["--cookies", ck_file]
+    args += ["-o", mp4, url]
+    try:
+        r = subprocess.run(args, capture_output=True, text=True)
+    finally:
+        if ck_file and os.path.exists(ck_file):
+            os.remove(ck_file)
+    return mp4 if (r.returncode == 0 and os.path.exists(mp4) and _has_video_stream(mp4)) else None
 
 
 # ---------- lịch sử phân tích ----------

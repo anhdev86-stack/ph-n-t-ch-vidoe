@@ -44,7 +44,7 @@ def _abs_expiry(v) -> int:
 
 
 def _sanitize(s: dict) -> dict:
-    """Trả field công khai (KHÔNG lộ app_secret / token)."""
+    """Trả field công khai (KHÔNG lộ app_secret / token / cookies)."""
     return {
         "id": s.get("id"),
         "shop_name": s.get("shop_name", "") or s.get("seller_name", ""),
@@ -52,8 +52,33 @@ def _sanitize(s: dict) -> dict:
         "service_id": s.get("service_id", ""),
         "market": s.get("market", "global"),
         "connected": bool(s.get("access_token")),
+        "has_cookies": bool(s.get("cookies")),  # đã dán cookies TikTok để xem video giỏ hàng chưa
         "created_at": s.get("created_at"),
     }
+
+
+def set_cookies(shop_id: str, cookies_txt: str) -> bool:
+    """Lưu cookies TikTok (Netscape cookies.txt) cho shop -> tải được video giỏ hàng."""
+    store = _load()
+    for s in store["shops"]:
+        if s.get("id") == shop_id:
+            s["cookies"] = cookies_txt or ""
+            _save(store)
+            return True
+    return False
+
+
+def get_cookies(shop_id: str = "") -> str:
+    """Cookies của shop_id; nếu không có -> lấy của shop bất kỳ đã dán cookies."""
+    shops = _load()["shops"]
+    if shop_id:
+        for s in shops:
+            if s.get("id") == shop_id:
+                return s.get("cookies") or ""
+    for s in shops:
+        if s.get("cookies"):
+            return s["cookies"]
+    return ""
 
 
 def list_shops() -> list[dict]:

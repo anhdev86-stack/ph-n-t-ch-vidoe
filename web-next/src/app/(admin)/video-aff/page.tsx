@@ -286,17 +286,16 @@ export default function VideoAffPage() {
       <Modal open={!!playing} onCancel={() => setPlaying(null)} footer={null} width={340}
         destroyOnClose title="Xem video" styles={{ body: { paddingTop: 8 } }}>
         {playing && (
-          <iframe
-            title="tiktok-player"
-            src={`https://www.tiktok.com/player/v1/${playing.id}?music_info=1&description=1&autoplay=1`}
-            style={{ width: "100%", height: 560, border: 0, borderRadius: 8, background: "#000" }}
-            allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+          <video
+            src={`${API_URL}/tiktok-video/${playing.id}?url=${encodeURIComponent(playing.url)}${shopId ? `&shop_id=${shopId}` : ""}`}
+            controls autoPlay playsInline
+            onError={() => msg.error("Chưa tải được video — kiểm tra đã dán cookies TikTok cho shop ở tab Kết nối chưa (video giỏ hàng cần cookies).")}
+            style={{ width: "100%", borderRadius: 8, background: "#000", aspectRatio: "9/16", objectFit: "contain" }}
           />
         )}
         <div style={{ color: "#888", fontSize: 12, marginTop: 8 }}>
-          Phát bằng player chính thức của TikTok.{" "}
-          {playing?.url && <a href={playing.url} target="_blank" rel="noopener">Mở trên TikTok ↗</a>}{" "}
-          (nếu video bị TikTok khoá nhúng, hãy mở trên TikTok).
+          Phát qua máy chủ (tải lần đầu vài giây, dùng cookies TikTok của shop cho video giỏ hàng).{" "}
+          {playing?.url && <a href={playing.url} target="_blank" rel="noopener">Mở trên TikTok ↗</a>}
         </div>
       </Modal>
     </Card>
