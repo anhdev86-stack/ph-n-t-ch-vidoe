@@ -93,7 +93,18 @@ def _request(method, base, path, query, app_key, app_secret, access_token=None) 
     headers = {"content-type": "application/json"}
     if access_token:
         headers["x-tts-access-token"] = access_token
-    resp = httpx.request(method, base + path, params=q, headers=headers, timeout=30)
+    # timeout 60s + thử lại 1 lần khi TikTok phản hồi chậm/treo (throttle tạm thời)
+    last_exc = None
+    for attempt in range(2):
+        try:
+            resp = httpx.request(method, base + path, params=q, headers=headers, timeout=60)
+            break
+        except httpx.HTTPError as e:
+            last_exc = e
+            if attempt == 0:
+                time.sleep(1.5)
+    else:
+        raise RuntimeError(f"TikTok API chậm/không phản hồi: {last_exc}")
     data = resp.json()
     if data.get("code") not in (0, None):
         raise RuntimeError(f"TikTok API lỗi {data.get('code')}: {data.get('message')} (request_id={data.get('request_id')})")
@@ -221,7 +232,11 @@ def get_all_videos(shop_id, start_date, end_date_lt, sort_field="gmv",
     started = time.time()
     videos, token, pages, truncated = [], None, 0, False
     while pages < max_pages:
-        data = _video_perf_page(shop, start_date, end_date_lt, 100, token, sort_field, sort_order)
+        try:
+            data = _video_perf_page(shop, start_date, end_date_lt, 100, token, sort_field, sort_order)
+        except Exception:  # noqa: BLE001 - 1 trang lỗi/chậm -> trả phần đã lấy, không văng cả request
+            truncated = True
+            break
         d = data.get("data") or {}
         items = d.get("videos") or d.get("shop_videos") or d.get("video_list") or []
         videos.extend(_extract_video(v) for v in items)
