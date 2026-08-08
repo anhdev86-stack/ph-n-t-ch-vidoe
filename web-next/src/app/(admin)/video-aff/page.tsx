@@ -287,7 +287,7 @@ export default function VideoAffPage() {
         destroyOnClose title="Xem video" styles={{ body: { paddingTop: 8 } }}>
         {playing && (
           <iframe
-            src={`https://www.tiktok.com/embed/v2/${playing.id}`}
+            src={`https://www.tiktok.com/player/v1/${playing.id}?controls=1&progress_bar=1&play_button=1&fullscreen_button=1&volume_control=1&description=0&music_info=0&rel=0`}
             title="TikTok video"
             allow="autoplay; encrypted-media; fullscreen"
             allowFullScreen
@@ -295,8 +295,9 @@ export default function VideoAffPage() {
           />
         )}
         <div style={{ color: "#888", fontSize: 12, marginTop: 8 }}>
-          Phát bằng player chính thức TikTok (xem được cả video giỏ hàng).{" "}
-          {playing?.url && <a href={playing.url} target="_blank" rel="noopener">Mở trên TikTok ↗</a>}
+          Player chính thức TikTok. Nếu video <b>gắn giỏ hàng</b> không phát (TikTok chặn nhúng),{" "}
+          {playing?.url && <a href={playing.url} target="_blank" rel="noopener">mở trên TikTok ↗</a>}{" "}
+          và xem bằng extension TikClient.
         </div>
       </Modal>
     </Card>
