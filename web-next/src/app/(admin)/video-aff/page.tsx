@@ -202,7 +202,7 @@ export default function VideoAffPage() {
     { title: "Xem", dataIndex: "videoLink", width: 72, render: (_u: string, v) =>
         v.videoId ? (
           <a onClick={() => setPlaying({ id: v.videoId, url: v.videoLink || "" })}
-            title="Phát bằng player chính thức TikTok (xem được cả video giỏ hàng)">
+            title="Phát video qua máy chủ (xem được cả video giỏ hàng)">
             <PlayCircleOutlined /> Xem
           </a>
         ) : "—" },
@@ -286,18 +286,17 @@ export default function VideoAffPage() {
       <Modal open={!!playing} onCancel={() => setPlaying(null)} footer={null} width={360}
         destroyOnClose title="Xem video" styles={{ body: { paddingTop: 8 } }}>
         {playing && (
-          <iframe
-            src={`https://www.tiktok.com/player/v1/${playing.id}?controls=1&progress_bar=1&play_button=1&fullscreen_button=1&volume_control=1&description=0&music_info=0&rel=0`}
-            title="TikTok video"
-            allow="autoplay; encrypted-media; fullscreen"
-            allowFullScreen
-            style={{ width: "100%", height: 740, border: 0, borderRadius: 8, background: "#000" }}
+          <video
+            key={playing.id}
+            src={`${API_URL}/tiktok-video/${playing.id}?url=${encodeURIComponent(playing.url)}`}
+            controls autoPlay playsInline
+            onError={() => msg.error("Không tải được video. Thử lại sau ít giây hoặc mở trên TikTok.")}
+            style={{ width: "100%", borderRadius: 8, background: "#000", aspectRatio: "9/16", objectFit: "contain" }}
           />
         )}
         <div style={{ color: "#888", fontSize: 12, marginTop: 8 }}>
-          Player chính thức TikTok. Nếu video <b>gắn giỏ hàng</b> không phát (TikTok chặn nhúng),{" "}
-          {playing?.url && <a href={playing.url} target="_blank" rel="noopener">mở trên TikTok ↗</a>}{" "}
-          và xem bằng extension TikClient.
+          Phát qua máy chủ — xem được cả video <b>gắn giỏ hàng</b>. Lần đầu tải mất vài giây.{" "}
+          {playing?.url && <a href={playing.url} target="_blank" rel="noopener">Mở trên TikTok ↗</a>}
         </div>
       </Modal>
     </Card>

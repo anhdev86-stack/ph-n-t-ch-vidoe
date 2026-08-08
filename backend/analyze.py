@@ -41,10 +41,35 @@ def _has_video_stream(path: str) -> bool:
         return True  # ffprobe lỗi -> cứ cho qua, không chặn
 
 
+def _download_via_tikwm(video_id: str, video_url: str, dest: str) -> str | None:
+    """Lấy video qua API tikwm (khai thác API mobile TikTok) -> tải được cả video GIỎ HÀNG
+    mà yt-dlp bị TikTok chặn (yt-dlp chỉ nhận được audio). Trả path mp4 hoặc None."""
+    import requests  # noqa: PLC0415
+    url = video_url or f"https://www.tiktok.com/@_/video/{video_id}"
+    try:
+        r = requests.get("https://tikwm.com/api/", params={"url": url, "hd": "1"}, timeout=30,
+                         headers={"User-Agent": "Mozilla/5.0"})
+        d = (r.json() or {}).get("data") or {}
+        play = d.get("hdplay") or d.get("play")
+        if not play:
+            return None
+        if play.startswith("/"):
+            play = "https://tikwm.com" + play
+        with requests.get(play, timeout=90, stream=True,
+                          headers={"User-Agent": "Mozilla/5.0", "Referer": "https://www.tiktok.com/"}) as vr:
+            vr.raise_for_status()
+            with open(dest, "wb") as f:
+                for chunk in vr.iter_content(1 << 16):
+                    if chunk:
+                        f.write(chunk)
+    except Exception:  # noqa: BLE001
+        return None
+    return dest if (os.path.exists(dest) and os.path.getsize(dest) > 0 and _has_video_stream(dest)) else None
+
+
 def ensure_downloaded(video_id: str, video_url: str = "", cookies: str = "") -> str | None:
-    """Trả path mp4 của video; tải bằng yt-dlp nếu chưa có. cookies (Netscape) = phiên
-    đăng nhập TikTok của shop -> tải được cả video GIỎ HÀNG (TikTok chỉ trả video khi đã login).
-    None nếu tải thất bại."""
+    """Trả path mp4 của video. Ưu tiên tikwm (tải được cả video GIỎ HÀNG mà TikTok chặn yt-dlp);
+    nếu tikwm hỏng thì thử yt-dlp. None nếu tải thất bại."""
     up = upload_path(video_id)
     if os.path.exists(up):
         return up
@@ -55,6 +80,14 @@ def ensure_downloaded(video_id: str, video_url: str = "", cookies: str = "") -> 
         os.remove(mp4)  # file hỏng (audio-only) -> tải lại
     os.makedirs(VIDEOS, exist_ok=True)
     url = video_url or f"https://www.tiktok.com/@_/video/{video_id}"
+
+    # 1) tikwm trước — lấy được video giỏ hàng
+    if _download_via_tikwm(video_id, url, mp4):
+        return mp4
+    if os.path.exists(mp4):
+        os.remove(mp4)  # dọn file tikwm hỏng dở
+
+    # 2) fallback yt-dlp
     args = [sys.executable, "-m", "yt_dlp",
             "-f", "bv*+ba/b", "-S", "vcodec:h264,res,acodec:aac",
             "--merge-output-format", "mp4", "--no-playlist",
