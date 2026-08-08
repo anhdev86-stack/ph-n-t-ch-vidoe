@@ -222,7 +222,7 @@ def _video_perf_page(shop, start_date, end_date_lt, page_size, page_token, sort_
 
 
 def get_all_videos(shop_id, start_date, end_date_lt, sort_field="gmv",
-                   sort_order="DESC", max_pages=120, budget_sec=120) -> dict:
+                   sort_order="DESC", max_pages=120, budget_sec=22) -> dict:
     """Lấy TOÀN BỘ video (phân trang) trong khoảng ngày. start/end dạng YYYY-MM-DD.
 
     An toàn timeout: dừng phân trang khi vượt max_pages HOẶC quá budget_sec giây
