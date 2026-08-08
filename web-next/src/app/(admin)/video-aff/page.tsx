@@ -119,7 +119,8 @@ export default function VideoAffPage() {
       if (r.error) { setErr(r.error); return; }
       const list: Video[] = r.videos || [];
       setVideos(list); setTotals(r.totals || null);
-      if (r.truncated) msg.warning(`Range lớn — mới lấy ${list.length} video (một phần). Thu hẹp khoảng ngày để lấy đủ.`, 6);
+      if (!list.length) msg.info("Không có video trong khoảng ngày này. Thử mở rộng khoảng ngày (vd 30 ngày gần nhất).", 6);
+      else if (r.truncated) msg.warning(`Range lớn — mới lấy ${list.length} video (một phần). Thu hẹp khoảng ngày để lấy đủ.`, 6);
       autoLoadProducts(list); // tự lấy sản phẩm song song, không cần bấm
     } catch (e) { setErr(String((e as Error).message || e)); }
     finally { setLoading(false); }
