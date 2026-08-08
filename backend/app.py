@@ -265,6 +265,12 @@ def tiktok_video(video_id: str, url: str = "", shop_id: str = ""):
     return FileResponse(p, media_type="video/mp4")
 
 
+@app.get("/api/v1/_ytdlp-debug")
+def ytdlp_debug(admin: dict = Depends(require_admin)):
+    import analyze as az
+    return {"log": getattr(az, "_LAST_YTDLP_LOG", "")}
+
+
 # ---------- Upload video (phân tích video đối thủ) ----------
 UPLOADS = os.path.join(HERE, "uploads")
 UPLOAD_INDEX = os.path.join(UPLOADS, "index.json")
