@@ -44,15 +44,24 @@ def _has_video_stream(path: str) -> bool:
 def _download_via_tikwm(video_id: str, video_url: str, dest: str) -> str | None:
     """Lấy video qua API tikwm (khai thác API mobile TikTok) -> tải được cả video GIỎ HÀNG
     mà yt-dlp bị TikTok chặn (yt-dlp chỉ nhận được audio). Trả path mp4 hoặc None."""
+    import time as _t  # noqa: PLC0415
     import requests  # noqa: PLC0415
     url = video_url or f"https://www.tiktok.com/@_/video/{video_id}"
+    play = None
+    for attempt in range(4):  # tikwm hay trả rỗng tạm thời -> thử lại vài lần
+        try:
+            r = requests.get("https://tikwm.com/api/", params={"url": url, "hd": "1"}, timeout=30,
+                             headers={"User-Agent": "Mozilla/5.0"})
+            d = (r.json() or {}).get("data") or {}
+            play = d.get("hdplay") or d.get("play")
+            if play:
+                break
+        except Exception:  # noqa: BLE001
+            pass
+        _t.sleep(2)
+    if not play:
+        return None
     try:
-        r = requests.get("https://tikwm.com/api/", params={"url": url, "hd": "1"}, timeout=30,
-                         headers={"User-Agent": "Mozilla/5.0"})
-        d = (r.json() or {}).get("data") or {}
-        play = d.get("hdplay") or d.get("play")
-        if not play:
-            return None
         if play.startswith("/"):
             play = "https://tikwm.com" + play
         with requests.get(play, timeout=90, stream=True,
