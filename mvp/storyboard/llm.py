@@ -85,14 +85,16 @@ def shop_insights(videos: list, storyboards: list, context: str = "") -> dict:
         videos="\n".join(_fmt_v(v) for v in videos) or "(trống)",
         storyboards=json.dumps(storyboards, ensure_ascii=False)[:8000] if storyboards else "(chưa có video top nào được phân tích storyboard)",
     )
-    # thử tối đa 2 lần: structured output đôi khi trả rỗng/bị cắt -> retry
+    # thử tối đa 2 lần: structured output đôi khi trả rỗng -> retry
+    data = {}
     for _ in range(2):
         resp = _client.messages.create(
             model=MODEL, max_tokens=8000,
             output_config={"format": {"type": "json_schema", "schema": prompts.INSIGHTS_SCHEMA}},
             messages=[{"role": "user", "content": prompt}],
         )
-        text = next((b.text for b in resp.content if b.type == "text"), "")
+        # GHÉP TẤT CẢ text block (response có thể tách nhiều block -> lấy 1 block sẽ cụt JSON)
+        text = "".join(b.text for b in resp.content if getattr(b, "type", "") == "text")
         data = _loads(text)
         if data.get("tong_quan") or data.get("cong_thuc_thang"):
             return data
@@ -110,4 +112,9 @@ def _loads(text: str) -> dict:
         return json.loads(text)
     except json.JSONDecodeError:
         start, end = text.find("{"), text.rfind("}")
-        return json.loads(text[start:end + 1]) if start >= 0 else {}
+        if start >= 0 and end > start:
+            try:
+                return json.loads(text[start:end + 1])
+            except json.JSONDecodeError:
+                return {}
+        return {}
