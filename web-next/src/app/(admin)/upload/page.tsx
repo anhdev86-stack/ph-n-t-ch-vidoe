@@ -2,11 +2,12 @@
 
 import React, { useEffect, useState } from "react";
 import {
-  Card, Upload, Table, Button, Popconfirm, Typography, message, Space,
+  Card, Upload, Table, Button, Popconfirm, Typography, message, Space, Tag,
 } from "antd";
 import type { UploadProps } from "antd";
 import { InboxOutlined, PlayCircleOutlined, DeleteOutlined } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import dayjs from "dayjs";
 import { useAuth } from "../../../lib/auth";
 import { api } from "../../../lib/api";
@@ -16,11 +17,12 @@ const { Dragger } = Upload;
 const { Text } = Typography;
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
 
-interface Up { id: string; name: string; size: number; uploaded_at: number }
+interface Up { id: string; name: string; size: number; uploaded_at: number; owner?: string }
 const fsize = (b: number) => b >= 1e9 ? (b / 1e9).toFixed(1) + " GB" : b >= 1e6 ? (b / 1e6).toFixed(1) + " MB" : (b / 1e3).toFixed(0) + " KB";
 
 export default function UploadPage() {
   const { accessToken } = useAuth();
+  const isAdmin = useSession().data?.user?.role === "admin";
   const router = useRouter();
   const [items, setItems] = useState<Up[]>([]);
   const [loading, setLoading] = useState(true);
@@ -79,6 +81,12 @@ export default function UploadPage() {
           onClick={() => router.push(`/?video_id=${id}&source=upload`)} />
       ) },
     { title: "Tên file", dataIndex: "name", ellipsis: true },
+    ...(isAdmin ? [{
+      title: "Người dùng", dataIndex: "owner", width: 150,
+      filters: [...new Set(items.map((x) => x.owner || "admin"))].map((o) => ({ text: o, value: o })),
+      onFilter: (v: React.Key | boolean, r: Up) => (r.owner || "admin") === v,
+      render: (o: string) => <Tag color="geekblue">{o || "admin"}</Tag>,
+    }] : []),
     { title: "Dung lượng", dataIndex: "size", width: 120, render: fsize },
     { title: "Tải lên", dataIndex: "uploaded_at", width: 160,
       render: (t: number) => dayjs.unix(t).format("DD/MM/YYYY HH:mm") },
@@ -96,7 +104,7 @@ export default function UploadPage() {
   ];
 
   return (
-    <Card title="Upload video đối thủ để phân tích">
+    <Card title={isAdmin ? "Upload video đối thủ (toàn bộ nhân viên)" : "Upload video đối thủ để phân tích"}>
       {ctx}
       <Dragger {...draggerProps} style={{ marginBottom: 20 }}>
         <p className="ant-upload-drag-icon"><InboxOutlined /></p>

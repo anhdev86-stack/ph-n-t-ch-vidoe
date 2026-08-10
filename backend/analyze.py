@@ -163,11 +163,16 @@ def record_history_for(video_id: str, source: str, title: str, owner: str = ""):
     _record_history(video_id, source, title, owner)
 
 
-def list_history(owner: str = "") -> list:
-    """Chỉ trả lịch sử của owner (username). Dòng cũ không có owner -> coi là của admin."""
-    owner = owner or "admin"
-    mine = [x for x in _load_history() if (x.get("owner") or "admin") == owner]
-    return sorted(mine, key=lambda x: x.get("analyzed_at", 0), reverse=True)
+def list_history(owner: str = "", all_users: bool = False) -> list:
+    """Trả lịch sử. all_users=True (admin) -> tất cả mọi người, kèm 'owner' từng dòng.
+    Ngược lại chỉ của owner (username). Dòng cũ không có owner -> coi là của admin."""
+    items = _load_history()
+    for x in items:
+        x["owner"] = x.get("owner") or "admin"   # điền owner cho dòng cũ
+    if not all_users:
+        owner = owner or "admin"
+        items = [x for x in items if x["owner"] == owner]
+    return sorted(items, key=lambda x: x.get("analyzed_at", 0), reverse=True)
 
 
 def analyze_common(items: list, owner: str = "") -> dict:

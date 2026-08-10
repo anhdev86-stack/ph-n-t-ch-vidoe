@@ -235,14 +235,18 @@ def cached_analysis(video_id: str, user: dict = Depends(require_user)):
 
 @app.get("/api/v1/history")
 def history(user: dict = Depends(require_user)):
+    """Admin: lịch sử của TẤT CẢ (kèm owner). Nhân viên: chỉ của mình."""
     import analyze as az
-    return {"history": az.list_history(user["sub"])}  # chỉ lịch sử của người đang đăng nhập
+    is_admin = user.get("role") == "admin"
+    return {"history": az.list_history(user["sub"], all_users=is_admin)}
 
 
 @app.delete("/api/v1/history/{video_id}")
-def delete_history(video_id: str, user: dict = Depends(require_user)):
+def delete_history(video_id: str, owner: str = "", user: dict = Depends(require_user)):
     import analyze as az
-    return {"removed": az.delete_history(video_id, user["sub"])}
+    is_admin = user.get("role") == "admin"
+    target = owner if (is_admin and owner) else user["sub"]  # admin xoá đúng dòng của người đó
+    return {"removed": az.delete_history(video_id, target)}
 
 
 @app.get("/api/v1/analyze/{video_id}/video")
@@ -306,18 +310,24 @@ def upload_video(file: UploadFile = File(...), user: dict = Depends(require_user
 
 @app.get("/api/v1/uploads")
 def list_uploads(user: dict = Depends(require_user)):
-    """Chỉ video của người đang đăng nhập (dòng cũ không có owner -> coi là của admin)."""
-    me = _owner_of(user)
-    mine = [x for x in _upload_index() if (x.get("owner") or "admin") == me]
-    return {"uploads": mine}
+    """Admin: tất cả video mọi người (kèm owner). Nhân viên: chỉ của mình.
+    Dòng cũ không có owner -> coi là của admin."""
+    items = _upload_index()
+    for x in items:
+        x["owner"] = x.get("owner") or "admin"
+    if user.get("role") != "admin":
+        me = _owner_of(user)
+        items = [x for x in items if x["owner"] == me]
+    return {"uploads": items}
 
 
 @app.delete("/api/v1/uploads/{video_id}")
 def delete_upload(video_id: str, user: dict = Depends(require_user)):
     me = _owner_of(user)
+    is_admin = user.get("role") == "admin"
     items = _upload_index()
     target = next((x for x in items if x.get("id") == video_id), None)
-    if target and (target.get("owner") or "admin") != me:
+    if target and not is_admin and (target.get("owner") or "admin") != me:
         raise HTTPException(403, "Không thể xoá video của người khác")
     _save_index([x for x in items if x.get("id") != video_id])
     for p in (os.path.join(UPLOADS, f"{video_id}.mp4"),
