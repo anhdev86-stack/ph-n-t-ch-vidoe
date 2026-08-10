@@ -9,6 +9,7 @@ import {
   CloudUploadOutlined,
   HistoryOutlined,
   TeamOutlined,
+  BulbOutlined,
 } from "@ant-design/icons";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -67,6 +68,11 @@ export default function AdminLayout({
             label: <Link href="/connect">Kết nối TikTok</Link>,
           },
           {
+            key: "ai-skill",
+            icon: <BulbOutlined />,
+            label: <Link href="/ai-skill">Huấn luyện AI</Link>,
+          },
+          {
             key: "users",
             icon: <TeamOutlined />,
             label: <Link href="/users">Quản lý tài khoản</Link>,
@@ -82,6 +88,7 @@ export default function AdminLayout({
     if (pathname.startsWith("/upload")) return "upload";
     if (pathname.startsWith("/history")) return "history";
     if (pathname.startsWith("/connect")) return "connect";
+    if (pathname.startsWith("/ai-skill")) return "ai-skill";
     if (pathname.startsWith("/users")) return "users";
     return "";
   };

@@ -127,7 +127,7 @@ STORYBOARD_SCHEMA = {
 # ================= Trợ lý phân tích thông minh (Shop Insights) =================
 INSIGHTS_PROMPT = """Bạn là CHUYÊN GIA TĂNG TRƯỞNG TikTok Shop affiliate cấp cao ở Việt Nam, \
 đọc số liệu để tìm ra CÔNG THỨC nội dung ra đơn. Dưới đây là dữ liệu thật của shop.
-
+{skill}
 Bối cảnh: {context}
 
 TOP video (đã sắp theo GMV, đơn vị tiền VND). Mỗi dòng: tiêu đề | người đăng | sản phẩm | \

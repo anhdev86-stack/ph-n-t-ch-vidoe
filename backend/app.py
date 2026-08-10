@@ -219,6 +219,51 @@ def analyze_common(body: CommonBody, user: dict = Depends(require_user)):
         return JSONResponse({"error": str(e)}, status_code=200)
 
 
+# ---------- Huấn luyện AI (tri thức domain cho trợ lý) ----------
+AI_SKILL_FILE = os.path.join(HERE, "analysis_cache", "ai_skill.json")
+
+
+def _load_skill() -> dict:
+    if os.path.exists(AI_SKILL_FILE):
+        try:
+            return json.load(open(AI_SKILL_FILE, encoding="utf-8"))
+        except Exception:  # noqa: BLE001
+            pass
+    return {"kien_thuc": "", "tong_giong": "", "quy_tac": ""}
+
+
+def _skill_text() -> str:
+    """Gộp tri thức đã lưu thành 1 khối text để chèn vào prompt."""
+    s = _load_skill()
+    parts = []
+    if s.get("kien_thuc", "").strip():
+        parts.append("• KIẾN THỨC NGÀNH / SẢN PHẨM / KHÁCH HÀNG:\n" + s["kien_thuc"].strip())
+    if s.get("tong_giong", "").strip():
+        parts.append("• TÔNG GIỌNG & PHONG CÁCH THƯƠNG HIỆU:\n" + s["tong_giong"].strip())
+    if s.get("quy_tac", "").strip():
+        parts.append("• QUY TẮC NÊN / KHÔNG NÊN:\n" + s["quy_tac"].strip())
+    return "\n\n".join(parts)
+
+
+class SkillBody(BaseModel):
+    kien_thuc: str = ""
+    tong_giong: str = ""
+    quy_tac: str = ""
+
+
+@app.get("/api/v1/ai-skill")
+def get_ai_skill(user: dict = Depends(require_user)):
+    return _load_skill()
+
+
+@app.put("/api/v1/ai-skill")
+def set_ai_skill(body: SkillBody, admin: dict = Depends(require_admin)):
+    os.makedirs(os.path.dirname(AI_SKILL_FILE), exist_ok=True)
+    data = {"kien_thuc": body.kien_thuc, "tong_giong": body.tong_giong, "quy_tac": body.quy_tac}
+    json.dump(data, open(AI_SKILL_FILE, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+    return {"ok": True}
+
+
 # ---------- Trợ lý phân tích thông minh (Shop Insights) ----------
 class InsightVideo(BaseModel):
     video_id: str = ""
@@ -259,7 +304,7 @@ def _run_insights(owner: str, videos: list, shop_name: str):
                     "diem_thanh_cong": (c.get("giai_thich_diem_thanh_cong") or {}).get("points", []),
                 })
         ctx = f"Shop: {shop_name}. Số video phân tích: {len(videos)}." if shop_name else f"Số video: {len(videos)}."
-        result = llm.shop_insights(videos, sbs, ctx)
+        result = llm.shop_insights(videos, sbs, ctx, _skill_text())  # chèn tri thức đã huấn luyện
         with _insights_lock:
             _insights[owner] = {"status": "done", "result": result, "storyboard_count": len(sbs)}
     except Exception as e:  # noqa: BLE001

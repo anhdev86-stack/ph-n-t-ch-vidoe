@@ -71,7 +71,7 @@ def find_common(video_briefs: list) -> dict:
     return _loads(text)
 
 
-def shop_insights(videos: list, storyboards: list, context: str = "") -> dict:
+def shop_insights(videos: list, storyboards: list, context: str = "", skill: str = "") -> dict:
     """Trợ lý phân tích: đọc top video (số liệu) + storyboard vài video top -> công thức content.
     videos: [{title, creator, product, gmv, orders, views, ctr, cvr, gpm}]
     storyboards: [{title, scenes:[{phan_canh, co_canh, loi_thoai}], diem_thanh_cong:[...]}]
@@ -80,7 +80,10 @@ def shop_insights(videos: list, storyboards: list, context: str = "") -> dict:
         return (f"{v.get('title','')[:70]} | {v.get('creator','')} | {v.get('product','') or '-'} | "
                 f"GMV {v.get('gmv',0)} | {v.get('orders',0)} đơn | {v.get('views',0)} view | "
                 f"CTR {v.get('ctr',0)}% | CVR {v.get('cvr',0)}% | GPM {v.get('gpm',0)}")
+    skill_block = ("\n===== TRI THỨC & QUY TẮC RIÊNG CỦA SHOP (BẮT BUỘC ưu tiên tuân thủ khi phân tích & gợi ý) =====\n"
+                   + skill.strip() + "\n=====\n") if skill and skill.strip() else ""
     prompt = prompts.INSIGHTS_PROMPT.format(
+        skill=skill_block,
         context=context or "(không có)",
         videos="\n".join(_fmt_v(v) for v in videos) or "(trống)",
         storyboards=json.dumps(storyboards, ensure_ascii=False)[:8000] if storyboards else "(chưa có video top nào được phân tích storyboard)",
