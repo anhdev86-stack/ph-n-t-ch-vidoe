@@ -263,8 +263,10 @@ def _run_insights(owner: str, videos: list, shop_name: str):
         with _insights_lock:
             _insights[owner] = {"status": "done", "result": result, "storyboard_count": len(sbs)}
     except Exception as e:  # noqa: BLE001
+        import traceback
         with _insights_lock:
-            _insights[owner] = {"status": "error", "error": str(e)}
+            _insights[owner] = {"status": "error", "error": f"{type(e).__name__}: {e}",
+                                "trace": traceback.format_exc()[-1200:]}
 
 
 @app.post("/api/v1/insights")
