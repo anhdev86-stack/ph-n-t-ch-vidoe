@@ -226,14 +226,20 @@ AI_SKILL_FILE = os.path.join(HERE, "analysis_cache", "ai_skill.json")
 DOCS_INJECT_CAP = 10000  # giới hạn ký tự tài liệu chèn vào prompt (chặn phồng token/chi phí)
 
 
+_SKILL_SCOPES = ("analysis", "insights")  # 2 khối riêng: phân tích video & điểm thành công | đúc rút công thức
+
+
 def _load_skill() -> dict:
-    d = {"kien_thuc": "", "tong_giong": "", "quy_tac": "", "phan_tich_huong_dan": "", "documents": []}
+    d = {sc: {"note": "", "documents": []} for sc in _SKILL_SCOPES}
     if os.path.exists(AI_SKILL_FILE):
         try:
-            d.update(json.load(open(AI_SKILL_FILE, encoding="utf-8")))
+            raw = json.load(open(AI_SKILL_FILE, encoding="utf-8"))
+            for sc in _SKILL_SCOPES:
+                if isinstance(raw.get(sc), dict):
+                    d[sc]["note"] = raw[sc].get("note", "")
+                    d[sc]["documents"] = raw[sc].get("documents", []) or []
         except Exception:  # noqa: BLE001
             pass
-    d.setdefault("documents", [])
     return d
 
 
@@ -242,16 +248,12 @@ def _save_skill(d: dict):
     json.dump(d, open(AI_SKILL_FILE, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
 
 
-def _skill_text() -> str:
-    """Gộp tri thức đã lưu (4 ô + tài liệu upload) thành 1 khối text để chèn vào prompt."""
-    s = _load_skill()
+def _skill_text(scope: str) -> str:
+    """Ghép ghi chú + tài liệu upload CỦA RIÊNG 1 khối (scope) thành text chèn vào prompt."""
+    s = _load_skill().get(scope, {})
     parts = []
-    if s.get("kien_thuc", "").strip():
-        parts.append("• KIẾN THỨC NGÀNH / SẢN PHẨM / KHÁCH HÀNG:\n" + s["kien_thuc"].strip())
-    if s.get("tong_giong", "").strip():
-        parts.append("• TÔNG GIỌNG & PHONG CÁCH THƯƠNG HIỆU:\n" + s["tong_giong"].strip())
-    if s.get("quy_tac", "").strip():
-        parts.append("• QUY TẮC NÊN / KHÔNG NÊN:\n" + s["quy_tac"].strip())
+    if s.get("note", "").strip():
+        parts.append(s["note"].strip())
     docs_text = "\n\n".join(f"[Tài liệu: {d.get('name','')}]\n{d.get('text','')}"
                             for d in s.get("documents", []) if d.get("text"))
     if docs_text.strip():
@@ -271,38 +273,37 @@ def _extract_doc_text(filename: str, raw: bytes) -> str:
 
 
 class SkillBody(BaseModel):
-    kien_thuc: str = ""
-    tong_giong: str = ""
-    quy_tac: str = ""
-    phan_tich_huong_dan: str = ""  # hướng dẫn riêng cho phần phân tích video + điểm thành công
+    analysis_note: str = ""   # ghi chú/hướng dẫn cho phần PHÂN TÍCH video + điểm thành công
+    insights_note: str = ""   # ghi chú/hướng dẫn cho phần ĐÚC RÚT công thức
+
+
+def _docs_public(docs: list) -> list:
+    return [{"id": x.get("id"), "name": x.get("name"),
+             "chars": x.get("chars", len(x.get("text", ""))),
+             "uploaded_at": x.get("uploaded_at")} for x in docs]
 
 
 @app.get("/api/v1/ai-skill")
 def get_ai_skill(user: dict = Depends(require_user)):
-    return _load_skill()
+    d = _load_skill()
+    return {sc: {"note": d[sc]["note"], "documents": _docs_public(d[sc]["documents"])} for sc in _SKILL_SCOPES}
 
 
 @app.put("/api/v1/ai-skill")
 def set_ai_skill(body: SkillBody, admin: dict = Depends(require_admin)):
     d = _load_skill()  # giữ nguyên documents đã upload
-    d.update({"kien_thuc": body.kien_thuc, "tong_giong": body.tong_giong,
-              "quy_tac": body.quy_tac, "phan_tich_huong_dan": body.phan_tich_huong_dan})
+    d["analysis"]["note"] = body.analysis_note
+    d["insights"]["note"] = body.insights_note
     _save_skill(d)
     return {"ok": True}
 
 
-@app.get("/api/v1/ai-skill/docs")
-def list_skill_docs(user: dict = Depends(require_user)):
-    """Danh sách tài liệu skill (không kèm text để nhẹ)."""
-    docs = _load_skill().get("documents", [])
-    return {"documents": [{"id": x.get("id"), "name": x.get("name"),
-                           "chars": x.get("chars", len(x.get("text", ""))),
-                           "uploaded_at": x.get("uploaded_at")} for x in docs]}
-
-
 @app.post("/api/v1/ai-skill/docs")
-def upload_skill_doc(file: UploadFile = File(...), admin: dict = Depends(require_admin)):
-    """Upload tài liệu huấn luyện (.md/.txt/.pdf) -> bóc text -> lưu vào tri thức AI."""
+def upload_skill_doc(scope: str = "analysis", file: UploadFile = File(...),
+                     admin: dict = Depends(require_admin)):
+    """Upload tài liệu (.md/.txt/.pdf) vào 1 khối (scope=analysis|insights)."""
+    if scope not in _SKILL_SCOPES:
+        return JSONResponse({"error": "scope không hợp lệ"}, status_code=400)
     raw = file.file.read()
     try:
         text = _extract_doc_text(file.filename or "", raw)
@@ -314,7 +315,7 @@ def upload_skill_doc(file: UploadFile = File(...), admin: dict = Depends(require
     d = _load_skill()
     rec = {"id": "doc_" + uuid.uuid4().hex[:10], "name": file.filename or "tai-lieu",
            "text": text, "chars": len(text), "uploaded_at": int(time.time())}
-    d.setdefault("documents", []).insert(0, rec)
+    d[scope]["documents"].insert(0, rec)
     _save_skill(d)
     return {"id": rec["id"], "name": rec["name"], "chars": rec["chars"], "uploaded_at": rec["uploaded_at"]}
 
@@ -322,7 +323,8 @@ def upload_skill_doc(file: UploadFile = File(...), admin: dict = Depends(require
 @app.delete("/api/v1/ai-skill/docs/{doc_id}")
 def delete_skill_doc(doc_id: str, admin: dict = Depends(require_admin)):
     d = _load_skill()
-    d["documents"] = [x for x in d.get("documents", []) if x.get("id") != doc_id]
+    for sc in _SKILL_SCOPES:
+        d[sc]["documents"] = [x for x in d[sc]["documents"] if x.get("id") != doc_id]
     _save_skill(d)
     return {"removed": True}
 
@@ -367,7 +369,7 @@ def _run_insights(owner: str, videos: list, shop_name: str):
                     "diem_thanh_cong": (c.get("giai_thich_diem_thanh_cong") or {}).get("points", []),
                 })
         ctx = f"Shop: {shop_name}. Số video phân tích: {len(videos)}." if shop_name else f"Số video: {len(videos)}."
-        result = llm.shop_insights(videos, sbs, ctx, _skill_text())  # chèn tri thức đã huấn luyện
+        result = llm.shop_insights(videos, sbs, ctx, _skill_text("insights"))  # tri thức khối ĐÚC RÚT
         with _insights_lock:
             _insights[owner] = {"status": "done", "result": result, "storyboard_count": len(sbs)}
     except Exception as e:  # noqa: BLE001

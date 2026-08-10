@@ -152,16 +152,13 @@ def _ai_config() -> dict:
 
 
 def _ai_skill_text() -> str:
-    s = _ai_config()
+    """Tri thức của KHỐI 'analysis' (phân tích video + điểm thành công): ghi chú + tài liệu upload."""
+    scope = (_ai_config().get("analysis") or {}) if isinstance(_ai_config().get("analysis"), dict) else {}
     parts = []
-    if s.get("kien_thuc", "").strip():
-        parts.append("• KIẾN THỨC NGÀNH / SẢN PHẨM / KHÁCH HÀNG:\n" + s["kien_thuc"].strip())
-    if s.get("tong_giong", "").strip():
-        parts.append("• TÔNG GIỌNG & PHONG CÁCH THƯƠNG HIỆU:\n" + s["tong_giong"].strip())
-    if s.get("quy_tac", "").strip():
-        parts.append("• QUY TẮC NÊN / KHÔNG NÊN:\n" + s["quy_tac"].strip())
+    if scope.get("note", "").strip():
+        parts.append(scope["note"].strip())
     docs_text = "\n\n".join(f"[Tài liệu: {d.get('name','')}]\n{d.get('text','')}"
-                            for d in s.get("documents", []) if d.get("text"))
+                            for d in scope.get("documents", []) if d.get("text"))
     if docs_text.strip():
         parts.append("• TÀI LIỆU HUẤN LUYỆN (do shop cung cấp):\n" + docs_text[:10000])
     return "\n\n".join(parts)
@@ -296,10 +293,8 @@ def analyze_video(video_id: str, video_url: str | None = None,
         frames = media.extract_keyframes(mp4, os.path.join(tmp, "f"), interval=3.0)
         transcript = asr.transcribe(wav, language=None if is_upload else "vi")
         visual = llm.describe_frames(frames)       # Claude vision
-        # áp tri thức + hướng dẫn admin cấu hình (rỗng -> giữ nguyên mặc định)
-        result = llm.segment_and_analyze(transcript, visual,
-                                         skill=_ai_skill_text(),
-                                         guide=_ai_config().get("phan_tich_huong_dan", ""))
+        # áp tri thức KHỐI 'analysis' admin cấu hình (rỗng -> giữ nguyên mặc định)
+        result = llm.segment_and_analyze(transcript, visual, skill=_ai_skill_text())
 
     mapped = _map(result)
     json.dump(mapped, open(cache_file, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
