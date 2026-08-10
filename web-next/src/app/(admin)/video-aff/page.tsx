@@ -348,7 +348,12 @@ export default function VideoAffPage() {
             <Spin /> <div style={{ marginTop: 12, color: "#888" }}>AI đang đọc số liệu + storyboard để rút công thức… (~30-90 giây)</div>
           </div>
         )}
-        {insights && (
+        {insights && !insights.tong_quan && !(insights.cong_thuc_thang?.length) && (
+          <div style={{ textAlign: "center", padding: 30, color: "#888" }}>
+            AI chưa tạo được công thức cho lần này. Anh bấm lại nút “Rút công thức content (AI)” giúp em nhé.
+          </div>
+        )}
+        {insights && (insights.tong_quan || insights.cong_thuc_thang?.length > 0) && (
           <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
             <div style={{ background: "#faf6ec", border: "1px solid #ecdca9", borderRadius: 8, padding: 12 }}>
               <b>Tổng quan:</b> {insights.tong_quan}

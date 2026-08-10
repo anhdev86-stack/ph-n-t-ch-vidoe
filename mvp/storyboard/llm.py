@@ -83,15 +83,20 @@ def shop_insights(videos: list, storyboards: list, context: str = "") -> dict:
     prompt = prompts.INSIGHTS_PROMPT.format(
         context=context or "(không có)",
         videos="\n".join(_fmt_v(v) for v in videos) or "(trống)",
-        storyboards=json.dumps(storyboards, ensure_ascii=False)[:12000] if storyboards else "(chưa có video top nào được phân tích storyboard)",
+        storyboards=json.dumps(storyboards, ensure_ascii=False)[:8000] if storyboards else "(chưa có video top nào được phân tích storyboard)",
     )
-    resp = _client.messages.create(
-        model=MODEL, max_tokens=4000,
-        output_config={"format": {"type": "json_schema", "schema": prompts.INSIGHTS_SCHEMA}},
-        messages=[{"role": "user", "content": prompt}],
-    )
-    text = next((b.text for b in resp.content if b.type == "text"), "{}")
-    return _loads(text)
+    # thử tối đa 2 lần: structured output đôi khi trả rỗng/bị cắt -> retry
+    for _ in range(2):
+        resp = _client.messages.create(
+            model=MODEL, max_tokens=8000,
+            output_config={"format": {"type": "json_schema", "schema": prompts.INSIGHTS_SCHEMA}},
+            messages=[{"role": "user", "content": prompt}],
+        )
+        text = next((b.text for b in resp.content if b.type == "text"), "")
+        data = _loads(text)
+        if data.get("tong_quan") or data.get("cong_thuc_thang"):
+            return data
+    return data
 
 
 def _loads(text: str) -> dict:
