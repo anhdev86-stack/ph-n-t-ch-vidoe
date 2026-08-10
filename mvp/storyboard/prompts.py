@@ -122,3 +122,61 @@ STORYBOARD_SCHEMA = {
     },
     "required": ["storyboard", "success_analysis"],
 }
+
+
+# ================= Trợ lý phân tích thông minh (Shop Insights) =================
+INSIGHTS_PROMPT = """Bạn là CHUYÊN GIA TĂNG TRƯỞNG TikTok Shop affiliate cấp cao ở Việt Nam, \
+đọc số liệu để tìm ra CÔNG THỨC nội dung ra đơn. Dưới đây là dữ liệu thật của shop.
+
+Bối cảnh: {context}
+
+TOP video (đã sắp theo GMV, đơn vị tiền VND). Mỗi dòng: tiêu đề | người đăng | sản phẩm | \
+GMV | đơn | lượt xem | CTR% | CVR% | GPM:
+{videos}
+
+Storyboard chi tiết của vài video top (để hiểu VÌ SAO chúng ra đơn — hook, cấu trúc, cỡ cảnh, lời thoại):
+{storyboards}
+
+Hãy phân tích như một cố vấn thực chiến, KHÔNG nói chung chung. Yêu cầu:
+- Dựa vào SỐ LIỆU thật để rút "công thức thắng" (yếu tố lặp lại ở các video GMV/CVR cao).
+- Mỗi kết luận nêu BẰNG CHỨNG (số liệu hoặc video nào).
+- Gợi ý phải HÀNH ĐỘNG ĐƯỢC NGAY (creator có thể áp dụng làm video mới).
+- So sánh video thắng vs video kém để chỉ ra khác biệt quyết định.
+- Viết tiếng Việt, ngắn gọn, đúng trọng tâm.
+
+Trả về JSON đúng schema."""
+
+INSIGHTS_SCHEMA = {
+    "type": "object",
+    "additionalProperties": False,
+    "properties": {
+        "tong_quan": {"type": "string"},  # 2-4 câu nhận định hiệu suất tổng thể
+        "cong_thuc_thang": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "additionalProperties": False,
+                "properties": {
+                    "yeu_to": {"type": "string"},    # VD: Hook, Cấu trúc, Cỡ cảnh, Lời thoại, Độ dài
+                    "mo_ta": {"type": "string"},     # công thức cụ thể áp dụng được
+                    "bang_chung": {"type": "string"},  # số liệu / video minh chứng
+                },
+                "required": ["yeu_to", "mo_ta", "bang_chung"],
+            },
+        },
+        "hook_hieu_qua": {"type": "array", "items": {"type": "string"}},   # các mẫu hook nên dùng
+        "san_pham_nen_day": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "additionalProperties": False,
+                "properties": {"ten": {"type": "string"}, "ly_do": {"type": "string"}},
+                "required": ["ten", "ly_do"],
+            },
+        },
+        "goi_y_dinh_dang": {"type": "array", "items": {"type": "string"}},  # định dạng/độ dài/CTA nên dùng
+        "canh_bao": {"type": "array", "items": {"type": "string"}},         # điều nên tránh
+    },
+    "required": ["tong_quan", "cong_thuc_thang", "hook_hieu_qua",
+                 "san_pham_nen_day", "goi_y_dinh_dang", "canh_bao"],
+}

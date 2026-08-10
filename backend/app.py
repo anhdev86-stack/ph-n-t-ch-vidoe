@@ -219,6 +219,73 @@ def analyze_common(body: CommonBody, user: dict = Depends(require_user)):
         return JSONResponse({"error": str(e)}, status_code=200)
 
 
+# ---------- Trợ lý phân tích thông minh (Shop Insights) ----------
+class InsightVideo(BaseModel):
+    video_id: str = ""
+    title: str = ""
+    creator: str = ""
+    product: str = ""
+    gmv: float = 0
+    orders: float = 0
+    views: float = 0
+    ctr: float = 0
+    cvr: float = 0
+    gpm: float = 0
+
+
+class InsightsBody(BaseModel):
+    videos: list[InsightVideo]
+    shop_name: str = ""
+
+
+_insights: dict[str, dict] = {}      # username -> {"status","result"/"error"}
+_insights_lock = threading.Lock()
+
+
+def _run_insights(owner: str, videos: list, shop_name: str):
+    import analyze as az
+    from storyboard import llm
+    try:
+        # kèm storyboard của tối đa 8 video top ĐÃ được phân tích -> hiểu vì sao ra đơn
+        sbs = []
+        for v in videos[:8]:
+            c = az.get_cached(v.get("video_id"))
+            if c:
+                sbs.append({
+                    "title": v.get("title"),
+                    "scenes": [{"phan_canh": s.get("phan_canh"), "co_canh": s.get("co_canh"),
+                                "loi_thoai": s.get("kich_ban_am_thanh")}
+                               for s in c.get("kich_ban_video", [])],
+                    "diem_thanh_cong": (c.get("giai_thich_diem_thanh_cong") or {}).get("points", []),
+                })
+        ctx = f"Shop: {shop_name}. Số video phân tích: {len(videos)}." if shop_name else f"Số video: {len(videos)}."
+        result = llm.shop_insights(videos, sbs, ctx)
+        with _insights_lock:
+            _insights[owner] = {"status": "done", "result": result, "storyboard_count": len(sbs)}
+    except Exception as e:  # noqa: BLE001
+        with _insights_lock:
+            _insights[owner] = {"status": "error", "error": str(e)}
+
+
+@app.post("/api/v1/insights")
+def start_insights(body: InsightsBody, user: dict = Depends(require_user)):
+    """Rút 'công thức content thắng' từ top video của shop. Chạy nền -> poll GET /insights."""
+    owner = user["sub"]
+    vids = [v.model_dump() for v in body.videos][:40]  # top 40 theo GMV (frontend đã sắp)
+    if not vids:
+        return JSONResponse({"error": "Chưa có video để phân tích."}, status_code=200)
+    with _insights_lock:
+        _insights[owner] = {"status": "running"}
+    threading.Thread(target=_run_insights, args=(owner, vids, body.shop_name), daemon=True).start()
+    return {"status": "processing"}
+
+
+@app.get("/api/v1/insights")
+def get_insights(user: dict = Depends(require_user)):
+    with _insights_lock:
+        return _insights.get(user["sub"]) or {"status": "idle"}
+
+
 @app.get("/api/v1/analysis/{video_id}")
 def cached_analysis(video_id: str, user: dict = Depends(require_user)):
     """Đọc storyboard đã lưu (KHÔNG phân tích lại). {cached:false} nếu chưa có."""

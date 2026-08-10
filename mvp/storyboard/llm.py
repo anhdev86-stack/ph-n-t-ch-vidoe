@@ -71,6 +71,29 @@ def find_common(video_briefs: list) -> dict:
     return _loads(text)
 
 
+def shop_insights(videos: list, storyboards: list, context: str = "") -> dict:
+    """Trợ lý phân tích: đọc top video (số liệu) + storyboard vài video top -> công thức content.
+    videos: [{title, creator, product, gmv, orders, views, ctr, cvr, gpm}]
+    storyboards: [{title, scenes:[{phan_canh, co_canh, loi_thoai}], diem_thanh_cong:[...]}]
+    """
+    def _fmt_v(v):
+        return (f"{v.get('title','')[:70]} | {v.get('creator','')} | {v.get('product','') or '-'} | "
+                f"GMV {v.get('gmv',0)} | {v.get('orders',0)} đơn | {v.get('views',0)} view | "
+                f"CTR {v.get('ctr',0)}% | CVR {v.get('cvr',0)}% | GPM {v.get('gpm',0)}")
+    prompt = prompts.INSIGHTS_PROMPT.format(
+        context=context or "(không có)",
+        videos="\n".join(_fmt_v(v) for v in videos) or "(trống)",
+        storyboards=json.dumps(storyboards, ensure_ascii=False)[:12000] if storyboards else "(chưa có video top nào được phân tích storyboard)",
+    )
+    resp = _client.messages.create(
+        model=MODEL, max_tokens=4000,
+        output_config={"format": {"type": "json_schema", "schema": prompts.INSIGHTS_SCHEMA}},
+        messages=[{"role": "user", "content": prompt}],
+    )
+    text = next((b.text for b in resp.content if b.type == "text"), "{}")
+    return _loads(text)
+
+
 def _loads(text: str) -> dict:
     """Parse JSON, chịu được trường hợp model bọc trong ```json ... ```."""
     text = text.strip()

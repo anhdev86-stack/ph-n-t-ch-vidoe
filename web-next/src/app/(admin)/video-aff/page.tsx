@@ -6,7 +6,7 @@ import {
   Popover, Spin, Progress, Space, message, Modal,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { SearchOutlined, DownloadOutlined, PlayCircleOutlined } from "@ant-design/icons";
+import { SearchOutlined, DownloadOutlined, PlayCircleOutlined, BulbOutlined } from "@ant-design/icons";
 import dayjs, { Dayjs } from "dayjs";
 import { useRouter } from "next/navigation";
 import { api } from "../../../lib/api";
@@ -25,6 +25,14 @@ interface Video {
 interface Totals { count: number; gmv: number; views: number; orders: number; ctr: number; cvr: number }
 type Product = { name: string; gmv: number; unitsSold: number };
 type ProdState = Product[] | "loading" | undefined;
+interface Insights {
+  tong_quan: string;
+  cong_thuc_thang: { yeu_to: string; mo_ta: string; bang_chung?: string }[];
+  hook_hieu_qua: string[];
+  san_pham_nen_day: { ten: string; ly_do: string }[];
+  goi_y_dinh_dang: string[];
+  canh_bao?: string[];
+}
 
 const numf = (n: number) => (n || 0).toLocaleString("vi-VN");
 
@@ -48,6 +56,9 @@ export default function VideoAffPage() {
   const [selectedKeys, setSelectedKeys] = useState<React.Key[]>([]);
   const [productFilter, setProductFilter] = useState<string>();
   const [playing, setPlaying] = useState<{ id: string; url: string } | null>(null);
+  const [insightsOpen, setInsightsOpen] = useState(false);
+  const [insightsLoading, setInsightsLoading] = useState(false);
+  const [insights, setInsights] = useState<Insights | null>(null);
   const router = useRouter();
 
   // Danh sách sản phẩm (gom từ sản phẩm đã tải của các video) để làm bộ lọc
@@ -187,6 +198,31 @@ export default function VideoAffPage() {
     msg.success(`Đã xuất ${filteredVideos.length} video`);
   };
 
+  // Trợ lý phân tích thông minh: gửi top video (theo GMV) -> AI rút công thức content
+  const runInsights = async () => {
+    const top = [...filteredVideos].sort((a, b) => b.gmv - a.gmv).slice(0, 40).map((v) => {
+      const p = products[v.videoId];
+      return {
+        video_id: v.videoId, title: v.title, creator: v.username,
+        product: Array.isArray(p) ? p.map((x) => x.name).join(" · ") : "",
+        gmv: v.gmv, orders: v.orders, views: v.views, ctr: v.ctr, cvr: v.cvr, gpm: v.gpm,
+      };
+    });
+    if (!top.length) { msg.info("Chưa có video. Bấm 'Lấy video' trước."); return; }
+    setInsightsOpen(true); setInsights(null); setInsightsLoading(true);
+    try {
+      const shopName = shops.find((s) => s.id === shopId)?.shop_name || "";
+      await api.post("/insights", { videos: top, shop_name: shopName });
+      for (let i = 0; i < 45; i++) {                 // poll tối đa ~3 phút
+        await new Promise((r) => setTimeout(r, 4000));
+        const r = await api.get("/insights");
+        if (r?.status === "done") { setInsights(r.result); break; }
+        if (r?.status === "error") { msg.error("Phân tích lỗi: " + r.error); break; }
+      }
+    } catch (e) { msg.error(String((e as Error).message || e)); }
+    finally { setInsightsLoading(false); }
+  };
+
   const clip = (t: string) => (
     <div title={t} style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "clip" }}>{t}</div>
   );
@@ -266,6 +302,11 @@ export default function VideoAffPage() {
             <Button type="primary" ghost icon={<DownloadOutlined />} onClick={exportExcel} disabled={!filteredVideos.length}>
               Xuất Excel
             </Button>
+            <Button type="primary" icon={<BulbOutlined />} onClick={runInsights}
+              loading={insightsLoading} disabled={!filteredVideos.length}
+              style={{ background: "#B8912F", borderColor: "#B8912F" }}>
+              Rút công thức content (AI)
+            </Button>
             <CommonAnalyze items={selectedItems} />
             {bulk && (
               <span style={{ color: "#888" }}>
@@ -298,6 +339,59 @@ export default function VideoAffPage() {
           Phát qua máy chủ — xem được cả video <b>gắn giỏ hàng</b>. Lần đầu tải mất vài giây.{" "}
           {playing?.url && <a href={playing.url} target="_blank" rel="noopener">Mở trên TikTok ↗</a>}
         </div>
+      </Modal>
+
+      <Modal open={insightsOpen} onCancel={() => setInsightsOpen(false)} footer={null} width={760}
+        title={<span><BulbOutlined style={{ color: "#B8912F" }} /> Công thức content thắng (AI phân tích {Math.min(40, filteredVideos.length)} video top)</span>}>
+        {insightsLoading && !insights && (
+          <div style={{ textAlign: "center", padding: 40 }}>
+            <Spin /> <div style={{ marginTop: 12, color: "#888" }}>AI đang đọc số liệu + storyboard để rút công thức… (~30-90 giây)</div>
+          </div>
+        )}
+        {insights && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+            <div style={{ background: "#faf6ec", border: "1px solid #ecdca9", borderRadius: 8, padding: 12 }}>
+              <b>Tổng quan:</b> {insights.tong_quan}
+            </div>
+            <div>
+              <b>🎯 Công thức thắng</b>
+              <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 8 }}>
+                {insights.cong_thuc_thang?.map((c, i) => (
+                  <div key={i} style={{ borderLeft: "3px solid #B8912F", paddingLeft: 10 }}>
+                    <div><b>{c.yeu_to}:</b> {c.mo_ta}</div>
+                    {c.bang_chung && <div style={{ color: "#888", fontSize: 12 }}>↳ Bằng chứng: {c.bang_chung}</div>}
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div>
+              <b>🪝 Hook hiệu quả nên dùng</b>
+              <ul style={{ margin: "6px 0 0", paddingLeft: 20 }}>
+                {insights.hook_hieu_qua?.map((h, i) => <li key={i}>{h}</li>)}
+              </ul>
+            </div>
+            <div>
+              <b>📦 Sản phẩm nên đẩy</b>
+              <ul style={{ margin: "6px 0 0", paddingLeft: 20 }}>
+                {insights.san_pham_nen_day?.map((p, i) => <li key={i}><b>{p.ten}</b> — {p.ly_do}</li>)}
+              </ul>
+            </div>
+            <div>
+              <b>🎬 Gợi ý định dạng / độ dài / CTA</b>
+              <ul style={{ margin: "6px 0 0", paddingLeft: 20 }}>
+                {insights.goi_y_dinh_dang?.map((g, i) => <li key={i}>{g}</li>)}
+              </ul>
+            </div>
+            {insights.canh_bao && insights.canh_bao.length > 0 && (
+              <div>
+                <b>⚠️ Nên tránh</b>
+                <ul style={{ margin: "6px 0 0", paddingLeft: 20 }}>
+                  {insights.canh_bao.map((c, i) => <li key={i}>{c}</li>)}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
       </Modal>
     </Card>
   );
