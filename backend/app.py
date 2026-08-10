@@ -164,10 +164,10 @@ _jobs: dict[str, str] = {}  # video_id -> "running" | "error: ..."
 _jobs_lock = threading.Lock()
 
 
-def _run_analyze(video_id, video_url, title, source):
+def _run_analyze(video_id, video_url, title, source, owner):
     import analyze as az
     try:
-        az.analyze_video(video_id, video_url, title, source)
+        az.analyze_video(video_id, video_url, title, source, owner)
         with _jobs_lock:
             _jobs.pop(video_id, None)
     except Exception as e:  # noqa: BLE001
@@ -179,8 +179,10 @@ def _run_analyze(video_id, video_url, title, source):
 def analyze(body: AnalyzeBody, user: dict = Depends(require_user)):
     """Khởi chạy phân tích trong NỀN. Trả {status}. Kết quả lấy qua GET /analysis/{id}."""
     import analyze as az
+    owner = user["sub"]
     cached = az.get_cached(body.video_id)
     if cached:
+        az.record_history_for(body.video_id, body.source, body.title, owner)  # vào lịch sử của người này
         return cached
     with _jobs_lock:
         running = _jobs.get(body.video_id) == "running"
@@ -188,7 +190,7 @@ def analyze(body: AnalyzeBody, user: dict = Depends(require_user)):
             _jobs[body.video_id] = "running"
     if not running:
         t = threading.Thread(target=_run_analyze,
-                             args=(body.video_id, body.video_url, body.title, body.source),
+                             args=(body.video_id, body.video_url, body.title, body.source, owner),
                              daemon=True)
         t.start()
     return {"status": "processing"}
@@ -212,7 +214,7 @@ def analyze_common(body: CommonBody, user: dict = Depends(require_user)):
         return JSONResponse({"error": "Chọn ít nhất 2 video."}, status_code=200)
     try:
         import analyze as az
-        return az.analyze_common([v.model_dump() for v in body.videos])
+        return az.analyze_common([v.model_dump() for v in body.videos], user["sub"])
     except Exception as e:  # noqa: BLE001
         return JSONResponse({"error": str(e)}, status_code=200)
 
@@ -234,13 +236,13 @@ def cached_analysis(video_id: str, user: dict = Depends(require_user)):
 @app.get("/api/v1/history")
 def history(user: dict = Depends(require_user)):
     import analyze as az
-    return {"history": az.list_history()}
+    return {"history": az.list_history(user["sub"])}  # chỉ lịch sử của người đang đăng nhập
 
 
 @app.delete("/api/v1/history/{video_id}")
 def delete_history(video_id: str, user: dict = Depends(require_user)):
     import analyze as az
-    return {"removed": az.delete_history(video_id)}
+    return {"removed": az.delete_history(video_id, user["sub"])}
 
 
 @app.get("/api/v1/analyze/{video_id}/video")
@@ -254,14 +256,13 @@ def analyzed_video(video_id: str):
 
 @app.get("/api/v1/tiktok-video/{video_id}")
 def tiktok_video(video_id: str, url: str = "", shop_id: str = ""):
-    """Xem video trên web (tải qua server). Dùng cookies TikTok của shop -> tải được video giỏ hàng."""
+    """Xem video trên web — server tải qua tikwm (được cả video giỏ hàng)."""
     import analyze as az
-    cookies = tiktok.get_cookies(shop_id)
-    p = az.ensure_downloaded(video_id, url, cookies)
+    p = az.ensure_downloaded(video_id, url)
     if not p:
-        msg = "Không tải được video." if cookies else \
-              "Không tải được video giỏ hàng — hãy dán cookies TikTok cho shop ở tab 'Kết nối TikTok'."
-        return JSONResponse({"error": msg}, status_code=502)
+        return JSONResponse(
+            {"error": "Không tải được video này (TikTok chặn hoặc video riêng tư). Thử mở trên TikTok."},
+            status_code=502)
     return FileResponse(p, media_type="video/mp4")
 
 
@@ -284,6 +285,10 @@ def _save_index(items: list):
     json.dump(items, open(UPLOAD_INDEX, "w", encoding="utf-8"), ensure_ascii=False)
 
 
+def _owner_of(user: dict) -> str:
+    return user.get("sub") or "admin"
+
+
 @app.post("/api/v1/uploads")
 def upload_video(file: UploadFile = File(...), user: dict = Depends(require_user)):
     os.makedirs(UPLOADS, exist_ok=True)
@@ -291,7 +296,7 @@ def upload_video(file: UploadFile = File(...), user: dict = Depends(require_user
     dest = os.path.join(UPLOADS, f"{vid}.mp4")
     with open(dest, "wb") as f:
         shutil.copyfileobj(file.file, f)
-    rec = {"id": vid, "name": file.filename or f"{vid}.mp4",
+    rec = {"id": vid, "name": file.filename or f"{vid}.mp4", "owner": _owner_of(user),
            "size": os.path.getsize(dest), "uploaded_at": int(time.time())}
     items = _upload_index()
     items.insert(0, rec)
@@ -301,13 +306,20 @@ def upload_video(file: UploadFile = File(...), user: dict = Depends(require_user
 
 @app.get("/api/v1/uploads")
 def list_uploads(user: dict = Depends(require_user)):
-    return {"uploads": _upload_index()}
+    """Chỉ video của người đang đăng nhập (dòng cũ không có owner -> coi là của admin)."""
+    me = _owner_of(user)
+    mine = [x for x in _upload_index() if (x.get("owner") or "admin") == me]
+    return {"uploads": mine}
 
 
 @app.delete("/api/v1/uploads/{video_id}")
 def delete_upload(video_id: str, user: dict = Depends(require_user)):
-    items = [x for x in _upload_index() if x.get("id") != video_id]
-    _save_index(items)
+    me = _owner_of(user)
+    items = _upload_index()
+    target = next((x for x in items if x.get("id") == video_id), None)
+    if target and (target.get("owner") or "admin") != me:
+        raise HTTPException(403, "Không thể xoá video của người khác")
+    _save_index([x for x in items if x.get("id") != video_id])
     for p in (os.path.join(UPLOADS, f"{video_id}.mp4"),
               os.path.join(HERE, "analysis_cache", f"{video_id}.json")):
         if os.path.exists(p):

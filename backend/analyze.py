@@ -140,25 +140,37 @@ def _detect_source(video_id: str) -> str:
     return "upload" if os.path.exists(upload_path(video_id)) else "tiktok"
 
 
-def _record_history(video_id: str, source: str, title: str):
+def _record_history(video_id: str, source: str, title: str, owner: str = ""):
+    """Ghi lịch sử THEO từng người dùng (owner). Mỗi (video_id, owner) là 1 dòng riêng
+    -> nhân viên chỉ thấy lịch sử của mình, không xem chung."""
+    owner = owner or "admin"  # dòng cũ chưa có owner coi như của admin
     items = _load_history()
     for it in items:
-        if it["video_id"] == video_id:            # đã có -> cập nhật nhẹ
+        if it["video_id"] == video_id and (it.get("owner") or "admin") == owner:
             if title:
                 it["title"] = title
             it["source"] = source or it.get("source")
+            it["owner"] = owner
             _save_history(items)
             return
-    items.insert(0, {"video_id": video_id, "source": source,
+    items.insert(0, {"video_id": video_id, "source": source, "owner": owner,
                      "title": title or video_id, "analyzed_at": int(time.time())})
     _save_history(items)
 
 
-def list_history() -> list:
-    return sorted(_load_history(), key=lambda x: x.get("analyzed_at", 0), reverse=True)
+def record_history_for(video_id: str, source: str, title: str, owner: str = ""):
+    """Ghi 1 video (đã có cache) vào lịch sử của người dùng — dùng khi cache hit."""
+    _record_history(video_id, source, title, owner)
 
 
-def analyze_common(items: list) -> dict:
+def list_history(owner: str = "") -> list:
+    """Chỉ trả lịch sử của owner (username). Dòng cũ không có owner -> coi là của admin."""
+    owner = owner or "admin"
+    mine = [x for x in _load_history() if (x.get("owner") or "admin") == owner]
+    return sorted(mine, key=lambda x: x.get("analyzed_at", 0), reverse=True)
+
+
+def analyze_common(items: list, owner: str = "") -> dict:
     """Lấy storyboard từng video (ưu tiên cache) rồi Claude tìm ĐIỂM CHUNG.
     items: [{video_id, source?, video_url?, title?}]
     """
@@ -166,7 +178,7 @@ def analyze_common(items: list) -> dict:
     for it in items:
         vid = it.get("video_id")
         sb = get_cached(vid) or analyze_video(vid, it.get("video_url"),
-                                              it.get("title", ""), it.get("source", ""))
+                                              it.get("title", ""), it.get("source", ""), owner)
         briefs.append({
             "title": it.get("title") or vid,
             "phan_canh": [{"ten": s.get("phan_canh"), "co_canh": s.get("co_canh"),
@@ -192,12 +204,19 @@ def get_cached(video_id: str) -> dict | None:
     return None
 
 
-def delete_history(video_id: str) -> bool:
-    items = [x for x in _load_history() if x["video_id"] != video_id]
-    _save_history(items)
-    cf = os.path.join(CACHE, f"{video_id}.json")
-    if os.path.exists(cf):
-        os.remove(cf)
+def delete_history(video_id: str, owner: str = "") -> bool:
+    """Xoá dòng lịch sử CỦA RIÊNG owner. Chỉ xoá file cache phân tích khi không còn
+    người dùng nào khác còn giữ video này trong lịch sử."""
+    owner = owner or "admin"
+    items = _load_history()
+    kept = [x for x in items
+            if not (x["video_id"] == video_id and (x.get("owner") or "admin") == owner)]
+    _save_history(kept)
+    still_referenced = any(x["video_id"] == video_id for x in kept)
+    if not still_referenced and not os.path.exists(upload_path(video_id)):
+        cf = os.path.join(CACHE, f"{video_id}.json")
+        if os.path.exists(cf):
+            os.remove(cf)
     return True
 
 
@@ -218,13 +237,13 @@ def _map(mvp_result: dict) -> dict:
 
 
 def analyze_video(video_id: str, video_url: str | None = None,
-                  title: str = "", source: str = "") -> dict:
+                  title: str = "", source: str = "", owner: str = "") -> dict:
     os.makedirs(CACHE, exist_ok=True)
     os.makedirs(VIDEOS, exist_ok=True)
     src = source or _detect_source(video_id)
     cache_file = os.path.join(CACHE, f"{video_id}.json")
     if os.path.exists(cache_file):
-        _record_history(video_id, src, title)
+        _record_history(video_id, src, title, owner)
         return json.load(open(cache_file, encoding="utf-8"))
 
     # 1) nguồn video: file upload có sẵn, hoặc tải từ TikTok
@@ -249,5 +268,5 @@ def analyze_video(video_id: str, video_url: str | None = None,
 
     mapped = _map(result)
     json.dump(mapped, open(cache_file, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
-    _record_history(video_id, src, title)
+    _record_history(video_id, src, title, owner)
     return mapped
