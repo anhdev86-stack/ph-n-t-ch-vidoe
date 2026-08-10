@@ -13,6 +13,9 @@ anthropic==0.120.2
 faster-whisper==1.1.1
 requests==2.32.3        # faster-whisper utils.py cần (tải model/VAD)
 
+# Đọc tài liệu skill upload (.pdf) cho tính năng Huấn luyện AI
+pypdf==5.1.0
+
 # Tải video TikTok + impersonation. curl_cffi 0.12 khớp yt-dlp 2026.7 (0.16 quá mới -> targets unavailable).
 # LƯU Ý: video giỏ hàng/affiliate TikTok chỉ lộ luồng AUDIO -> xem bằng player nhúng TikTok ở frontend.
 yt-dlp[default]>=2026.7.4

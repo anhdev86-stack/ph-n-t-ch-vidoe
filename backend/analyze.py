@@ -160,6 +160,10 @@ def _ai_skill_text() -> str:
         parts.append("• TÔNG GIỌNG & PHONG CÁCH THƯƠNG HIỆU:\n" + s["tong_giong"].strip())
     if s.get("quy_tac", "").strip():
         parts.append("• QUY TẮC NÊN / KHÔNG NÊN:\n" + s["quy_tac"].strip())
+    docs_text = "\n\n".join(f"[Tài liệu: {d.get('name','')}]\n{d.get('text','')}"
+                            for d in s.get("documents", []) if d.get("text"))
+    if docs_text.strip():
+        parts.append("• TÀI LIỆU HUẤN LUYỆN (do shop cung cấp):\n" + docs_text[:10000])
     return "\n\n".join(parts)
 
 

@@ -223,17 +223,27 @@ def analyze_common(body: CommonBody, user: dict = Depends(require_user)):
 AI_SKILL_FILE = os.path.join(HERE, "analysis_cache", "ai_skill.json")
 
 
+DOCS_INJECT_CAP = 10000  # giới hạn ký tự tài liệu chèn vào prompt (chặn phồng token/chi phí)
+
+
 def _load_skill() -> dict:
+    d = {"kien_thuc": "", "tong_giong": "", "quy_tac": "", "phan_tich_huong_dan": "", "documents": []}
     if os.path.exists(AI_SKILL_FILE):
         try:
-            return json.load(open(AI_SKILL_FILE, encoding="utf-8"))
+            d.update(json.load(open(AI_SKILL_FILE, encoding="utf-8")))
         except Exception:  # noqa: BLE001
             pass
-    return {"kien_thuc": "", "tong_giong": "", "quy_tac": "", "phan_tich_huong_dan": ""}
+    d.setdefault("documents", [])
+    return d
+
+
+def _save_skill(d: dict):
+    os.makedirs(os.path.dirname(AI_SKILL_FILE), exist_ok=True)
+    json.dump(d, open(AI_SKILL_FILE, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
 
 
 def _skill_text() -> str:
-    """Gộp tri thức đã lưu thành 1 khối text để chèn vào prompt."""
+    """Gộp tri thức đã lưu (4 ô + tài liệu upload) thành 1 khối text để chèn vào prompt."""
     s = _load_skill()
     parts = []
     if s.get("kien_thuc", "").strip():
@@ -242,7 +252,22 @@ def _skill_text() -> str:
         parts.append("• TÔNG GIỌNG & PHONG CÁCH THƯƠNG HIỆU:\n" + s["tong_giong"].strip())
     if s.get("quy_tac", "").strip():
         parts.append("• QUY TẮC NÊN / KHÔNG NÊN:\n" + s["quy_tac"].strip())
+    docs_text = "\n\n".join(f"[Tài liệu: {d.get('name','')}]\n{d.get('text','')}"
+                            for d in s.get("documents", []) if d.get("text"))
+    if docs_text.strip():
+        parts.append("• TÀI LIỆU HUẤN LUYỆN (do shop cung cấp):\n" + docs_text[:DOCS_INJECT_CAP])
     return "\n\n".join(parts)
+
+
+def _extract_doc_text(filename: str, raw: bytes) -> str:
+    """Bóc text từ file skill: .pdf -> pypdf; .md/.txt/khác -> decode UTF-8."""
+    name = (filename or "").lower()
+    if name.endswith(".pdf"):
+        import io
+        from pypdf import PdfReader
+        reader = PdfReader(io.BytesIO(raw))
+        return "\n".join((p.extract_text() or "") for p in reader.pages).strip()
+    return raw.decode("utf-8", errors="ignore").strip()
 
 
 class SkillBody(BaseModel):
@@ -259,11 +284,47 @@ def get_ai_skill(user: dict = Depends(require_user)):
 
 @app.put("/api/v1/ai-skill")
 def set_ai_skill(body: SkillBody, admin: dict = Depends(require_admin)):
-    os.makedirs(os.path.dirname(AI_SKILL_FILE), exist_ok=True)
-    data = {"kien_thuc": body.kien_thuc, "tong_giong": body.tong_giong, "quy_tac": body.quy_tac,
-            "phan_tich_huong_dan": body.phan_tich_huong_dan}
-    json.dump(data, open(AI_SKILL_FILE, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+    d = _load_skill()  # giữ nguyên documents đã upload
+    d.update({"kien_thuc": body.kien_thuc, "tong_giong": body.tong_giong,
+              "quy_tac": body.quy_tac, "phan_tich_huong_dan": body.phan_tich_huong_dan})
+    _save_skill(d)
     return {"ok": True}
+
+
+@app.get("/api/v1/ai-skill/docs")
+def list_skill_docs(user: dict = Depends(require_user)):
+    """Danh sách tài liệu skill (không kèm text để nhẹ)."""
+    docs = _load_skill().get("documents", [])
+    return {"documents": [{"id": x.get("id"), "name": x.get("name"),
+                           "chars": x.get("chars", len(x.get("text", ""))),
+                           "uploaded_at": x.get("uploaded_at")} for x in docs]}
+
+
+@app.post("/api/v1/ai-skill/docs")
+def upload_skill_doc(file: UploadFile = File(...), admin: dict = Depends(require_admin)):
+    """Upload tài liệu huấn luyện (.md/.txt/.pdf) -> bóc text -> lưu vào tri thức AI."""
+    raw = file.file.read()
+    try:
+        text = _extract_doc_text(file.filename or "", raw)
+    except Exception as e:  # noqa: BLE001
+        return JSONResponse({"error": f"Không đọc được file: {e}"}, status_code=400)
+    if not text.strip():
+        return JSONResponse({"error": "File không có nội dung text (PDF scan ảnh không đọc được)."},
+                            status_code=400)
+    d = _load_skill()
+    rec = {"id": "doc_" + uuid.uuid4().hex[:10], "name": file.filename or "tai-lieu",
+           "text": text, "chars": len(text), "uploaded_at": int(time.time())}
+    d.setdefault("documents", []).insert(0, rec)
+    _save_skill(d)
+    return {"id": rec["id"], "name": rec["name"], "chars": rec["chars"], "uploaded_at": rec["uploaded_at"]}
+
+
+@app.delete("/api/v1/ai-skill/docs/{doc_id}")
+def delete_skill_doc(doc_id: str, admin: dict = Depends(require_admin)):
+    d = _load_skill()
+    d["documents"] = [x for x in d.get("documents", []) if x.get("id") != doc_id]
+    _save_skill(d)
+    return {"removed": True}
 
 
 # ---------- Trợ lý phân tích thông minh (Shop Insights) ----------
