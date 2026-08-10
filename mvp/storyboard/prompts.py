@@ -30,7 +30,7 @@ Chỉ mô tả cái NHÌN THẤY, không suy diễn lời thoại. Trả về JS
 
 # --- Prompt Segment + Analysis: 1 lượt gọi ra cả bảng lẫn phần "điểm thành công" ---
 SEGMENT_PROMPT = f"""Bạn là chuyên gia kịch bản video affiliate TikTok tiếng Việt.
-
+{{skill_guide}}
 INPUT:
 - Transcript có timestamp (lời thoại): {{transcript}}
 - Mô tả hình ảnh theo mốc thời gian: {{visual}}

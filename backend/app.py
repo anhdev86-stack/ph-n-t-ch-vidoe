@@ -229,7 +229,7 @@ def _load_skill() -> dict:
             return json.load(open(AI_SKILL_FILE, encoding="utf-8"))
         except Exception:  # noqa: BLE001
             pass
-    return {"kien_thuc": "", "tong_giong": "", "quy_tac": ""}
+    return {"kien_thuc": "", "tong_giong": "", "quy_tac": "", "phan_tich_huong_dan": ""}
 
 
 def _skill_text() -> str:
@@ -249,6 +249,7 @@ class SkillBody(BaseModel):
     kien_thuc: str = ""
     tong_giong: str = ""
     quy_tac: str = ""
+    phan_tich_huong_dan: str = ""  # hướng dẫn riêng cho phần phân tích video + điểm thành công
 
 
 @app.get("/api/v1/ai-skill")
@@ -259,7 +260,8 @@ def get_ai_skill(user: dict = Depends(require_user)):
 @app.put("/api/v1/ai-skill")
 def set_ai_skill(body: SkillBody, admin: dict = Depends(require_admin)):
     os.makedirs(os.path.dirname(AI_SKILL_FILE), exist_ok=True)
-    data = {"kien_thuc": body.kien_thuc, "tong_giong": body.tong_giong, "quy_tac": body.quy_tac}
+    data = {"kien_thuc": body.kien_thuc, "tong_giong": body.tong_giong, "quy_tac": body.quy_tac,
+            "phan_tich_huong_dan": body.phan_tich_huong_dan}
     json.dump(data, open(AI_SKILL_FILE, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
     return {"ok": True}
 

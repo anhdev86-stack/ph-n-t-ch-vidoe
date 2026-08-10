@@ -140,6 +140,29 @@ def _detect_source(video_id: str) -> str:
     return "upload" if os.path.exists(upload_path(video_id)) else "tiktok"
 
 
+# ---------- tri thức "Huấn luyện AI" (admin cấu hình) áp vào phần phân tích ----------
+def _ai_config() -> dict:
+    f = os.path.join(CACHE, "ai_skill.json")
+    if os.path.exists(f):
+        try:
+            return json.load(open(f, encoding="utf-8"))
+        except Exception:  # noqa: BLE001
+            pass
+    return {}
+
+
+def _ai_skill_text() -> str:
+    s = _ai_config()
+    parts = []
+    if s.get("kien_thuc", "").strip():
+        parts.append("• KIẾN THỨC NGÀNH / SẢN PHẨM / KHÁCH HÀNG:\n" + s["kien_thuc"].strip())
+    if s.get("tong_giong", "").strip():
+        parts.append("• TÔNG GIỌNG & PHONG CÁCH THƯƠNG HIỆU:\n" + s["tong_giong"].strip())
+    if s.get("quy_tac", "").strip():
+        parts.append("• QUY TẮC NÊN / KHÔNG NÊN:\n" + s["quy_tac"].strip())
+    return "\n\n".join(parts)
+
+
 def _record_history(video_id: str, source: str, title: str, owner: str = ""):
     """Ghi lịch sử THEO từng người dùng (owner). Mỗi (video_id, owner) là 1 dòng riêng
     -> nhân viên chỉ thấy lịch sử của mình, không xem chung."""
@@ -269,7 +292,10 @@ def analyze_video(video_id: str, video_url: str | None = None,
         frames = media.extract_keyframes(mp4, os.path.join(tmp, "f"), interval=3.0)
         transcript = asr.transcribe(wav, language=None if is_upload else "vi")
         visual = llm.describe_frames(frames)       # Claude vision
-        result = llm.segment_and_analyze(transcript, visual)
+        # áp tri thức + hướng dẫn admin cấu hình (rỗng -> giữ nguyên mặc định)
+        result = llm.segment_and_analyze(transcript, visual,
+                                         skill=_ai_skill_text(),
+                                         guide=_ai_config().get("phan_tich_huong_dan", ""))
 
     mapped = _map(result)
     json.dump(mapped, open(cache_file, "w", encoding="utf-8"), ensure_ascii=False, indent=2)

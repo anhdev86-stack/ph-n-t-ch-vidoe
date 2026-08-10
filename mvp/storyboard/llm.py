@@ -40,9 +40,19 @@ def describe_frames(frames, batch: int = 12):
     return results
 
 
-def segment_and_analyze(transcript, visual):
-    """Segment theo khung marketing + sinh phần 'điểm thành công'. Structured output."""
+def segment_and_analyze(transcript, visual, skill: str = "", guide: str = ""):
+    """Segment theo khung marketing + sinh phần 'điểm thành công'. Structured output.
+    skill = tri thức domain của shop; guide = hướng dẫn riêng cho phần phân tích (admin cấu hình).
+    Rỗng -> giữ nguyên hành vi mặc định."""
+    blocks = []
+    if skill and skill.strip():
+        blocks.append("===== TRI THỨC & QUY TẮC RIÊNG CỦA SHOP (ưu tiên tuân thủ khi phân tích & giải thích điểm thành công) =====\n"
+                      + skill.strip())
+    if guide and guide.strip():
+        blocks.append("===== HƯỚNG DẪN RIÊNG CHO PHẦN PHÂN TÍCH (admin cấu hình) =====\n" + guide.strip())
+    skill_guide = ("\n" + "\n\n".join(blocks) + "\n") if blocks else ""
     prompt = prompts.SEGMENT_PROMPT.format(
+        skill_guide=skill_guide,
         transcript=json.dumps(transcript, ensure_ascii=False),
         visual=json.dumps(visual, ensure_ascii=False),
     )

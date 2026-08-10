@@ -9,19 +9,19 @@ import { api } from "../../../lib/api";
 const { Paragraph, Text } = Typography;
 const { TextArea } = Input;
 
-interface Skill { kien_thuc: string; tong_giong: string; quy_tac: string }
+interface Skill { kien_thuc: string; tong_giong: string; quy_tac: string; phan_tich_huong_dan: string }
 
 export default function AiSkillPage() {
   const { data: session, status } = useSession();
   const isAdmin = session?.user?.role === "admin";
-  const [skill, setSkill] = useState<Skill>({ kien_thuc: "", tong_giong: "", quy_tac: "" });
+  const [skill, setSkill] = useState<Skill>({ kien_thuc: "", tong_giong: "", quy_tac: "", phan_tich_huong_dan: "" });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [msg, ctx] = message.useMessage();
 
   useEffect(() => {
     api.get("/ai-skill")
-      .then((r) => setSkill({ kien_thuc: r.kien_thuc || "", tong_giong: r.tong_giong || "", quy_tac: r.quy_tac || "" }))
+      .then((r) => setSkill({ kien_thuc: r.kien_thuc || "", tong_giong: r.tong_giong || "", quy_tac: r.quy_tac || "", phan_tich_huong_dan: r.phan_tich_huong_dan || "" }))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
@@ -57,7 +57,7 @@ export default function AiSkillPage() {
       {ctx}
       <Alert type="info" showIcon style={{ marginBottom: 20 }}
         message="Dạy AI hiểu ngành hàng & phong cách của shop"
-        description="Nội dung ở đây được tự động chèn vào mỗi lần chạy 'Rút công thức content (AI)' — giúp trợ lý phân tích & gợi ý ĐÚNG chất shop của bạn (không phải train model, áp dụng ngay). Càng cụ thể, kết quả càng sát." />
+        description="Nội dung ở đây được tự động chèn vào AI cho cả 'Phân tích video (Storyboard) + Giải thích điểm thành công' VÀ 'Rút công thức content'. Không phải train model — áp dụng ngay cho các video phân tích MỚI. Để trống = giữ nguyên như mặc định hiện tại." />
       <Space direction="vertical" size={20} style={{ width: "100%" }}>
         {field("1. Kiến thức ngành / sản phẩm / khách hàng",
           "Sản phẩm chủ lực, USP, đối tượng khách, nỗi đau chính, thuật ngữ ngành…",
@@ -71,6 +71,10 @@ export default function AiSkillPage() {
           "Điều bắt buộc làm và điều cấm (từ ngữ cấm, claim không được nói…).",
           "quy_tac", 4,
           "VD: KHÔNG dùng từ 'chữa khỏi', 'trắng cấp tốc'. NÊN có hook 3 giây đầu + bằng chứng số liệu. Luôn nhắc mã giảm giá ở cuối.")}
+        {field("4. Hướng dẫn riêng cho phần PHÂN TÍCH VIDEO & điểm thành công (tùy chọn)",
+          "Chỉ dẫn thêm để AI phân tích storyboard & giải thích điểm thành công theo ý bạn. Để trống = phân tích như mặc định.",
+          "phan_tich_huong_dan", 5,
+          "VD: Nhấn mạnh phân tích HOOK 3 giây đầu. Giải thích điểm thành công theo góc nhìn tâm lý mua hàng của phụ nữ 18-30. Chỉ rõ khoảnh khắc chốt đơn.")}
       </Space>
     </Card>
   );
