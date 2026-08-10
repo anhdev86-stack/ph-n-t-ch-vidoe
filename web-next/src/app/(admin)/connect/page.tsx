@@ -27,20 +27,6 @@ export default function ConnectPage() {
   const [origin, setOrigin] = useState("");
   const [form] = Form.useForm();
   const [messageApi, ctx] = message.useMessage();
-  const [cookieShop, setCookieShop] = useState<Shop | null>(null);
-  const [cookieText, setCookieText] = useState("");
-  const [savingCk, setSavingCk] = useState(false);
-
-  const saveCookies = async () => {
-    if (!cookieShop) return;
-    setSavingCk(true);
-    try {
-      await api.put(`/tiktok/shops/${cookieShop.id}/cookies`, { cookies: cookieText });
-      messageApi.success("Đã lưu cookies. Giờ xem được video giỏ hàng của shop này.");
-      setCookieShop(null); setCookieText(""); loadShops();
-    } catch (e) { messageApi.error(String((e as Error).message || e)); }
-    finally { setSavingCk(false); }
-  };
 
   useEffect(() => { setOrigin(window.location.origin); }, []);
 
@@ -138,10 +124,6 @@ export default function ConnectPage() {
                 renderItem={(s) => (
                   <List.Item
                     actions={[
-                      <Button key="ck" type="link" size="small"
-                        onClick={() => { setCookieShop(s); setCookieText(""); }}>
-                        {s.has_cookies ? "Sửa cookies" : "Dán cookies"}
-                      </Button>,
                       <Popconfirm key="del" title="Xoá shop này?" okText="Xoá" cancelText="Huỷ"
                         onConfirm={() => removeShop(s.id)}>
                         <Button danger type="text" icon={<DeleteOutlined />} />
@@ -155,9 +137,6 @@ export default function ConnectPage() {
                         <span>
                           {s.service_id && <Tag>service_id: {s.service_id}</Tag>}
                           <Tag color={s.market === "us" ? "blue" : "gold"}>{s.market}</Tag>
-                          <Tag color={s.has_cookies ? "green" : "default"}>
-                            {s.has_cookies ? "✓ có cookies (xem được video giỏ hàng)" : "chưa có cookies"}
-                          </Tag>
                         </span>
                       }
                     />
@@ -168,22 +147,6 @@ export default function ConnectPage() {
           </Card>
         </Col>
       </Row>
-
-      <Modal open={!!cookieShop} onCancel={() => setCookieShop(null)} onOk={saveCookies}
-        confirmLoading={savingCk} okText="Lưu cookies" cancelText="Huỷ" width={640}
-        title={`Dán cookies TikTok — ${cookieShop?.shop_name || cookieShop?.seller_name || ""}`}>
-        <Paragraph type="secondary" style={{ marginBottom: 8 }}>
-          Dán cookies để xem/tải được <b>video giỏ hàng</b> (TikTok chỉ trả video khi đã đăng nhập).
-          Cách lấy: cài extension <Text code>Get cookies.txt LOCALLY</Text> → vào <Text code>tiktok.com</Text> (đang đăng nhập)
-          → bấm extension → <b>Export</b> (định dạng Netscape) → mở file, copy toàn bộ, dán vào đây.
-        </Paragraph>
-        <Input.TextArea rows={10} value={cookieText} onChange={(e) => setCookieText(e.target.value)}
-          placeholder="# Netscape HTTP Cookie File&#10;.tiktok.com  TRUE  /  TRUE  ...  sessionid  xxxxxxxx&#10;..."
-          style={{ fontFamily: "monospace", fontSize: 12 }} />
-        <Text type="secondary" style={{ fontSize: 12 }}>
-          Cookies chỉ lưu trên server tool của bạn, không chia sẻ. Hết hạn sau ~vài tuần → dán lại khi cần.
-        </Text>
-      </Modal>
     </>
   );
 }

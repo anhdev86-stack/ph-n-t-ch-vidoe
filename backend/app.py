@@ -265,12 +265,6 @@ def tiktok_video(video_id: str, url: str = "", shop_id: str = ""):
     return FileResponse(p, media_type="video/mp4")
 
 
-@app.get("/api/v1/_ytdlp-debug")
-def ytdlp_debug(admin: dict = Depends(require_admin)):
-    import analyze as az
-    return {"log": getattr(az, "_LAST_YTDLP_LOG", "")}
-
-
 # ---------- Upload video (phân tích video đối thủ) ----------
 UPLOADS = os.path.join(HERE, "uploads")
 UPLOAD_INDEX = os.path.join(UPLOADS, "index.json")
@@ -405,16 +399,6 @@ def tiktok_shops(user: dict = Depends(require_user)):
 @app.delete("/api/v1/tiktok/shops/{shop_id}")
 def tiktok_remove_shop(shop_id: str, user: dict = Depends(require_admin)):
     return {"removed": tiktok.remove_shop(shop_id)}
-
-
-class CookiesBody(BaseModel):
-    cookies: str = ""
-
-
-@app.put("/api/v1/tiktok/shops/{shop_id}/cookies")
-def set_shop_cookies(shop_id: str, body: CookiesBody, admin: dict = Depends(require_admin)):
-    """Dán cookies TikTok (Netscape cookies.txt) cho shop -> xem/tải được video giỏ hàng."""
-    return {"ok": tiktok.set_cookies(shop_id, body.cookies)}
 
 
 @app.get("/api/v1/tiktok/status")

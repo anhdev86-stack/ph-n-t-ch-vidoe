@@ -113,15 +113,7 @@ def ensure_downloaded(video_id: str, video_url: str = "", cookies: str = "") -> 
     finally:
         if ck_file and os.path.exists(ck_file):
             os.remove(ck_file)
-    global _LAST_YTDLP_LOG
-    _LAST_YTDLP_LOG = (f"rc={r.returncode} exists={os.path.exists(mp4)} "
-                       f"has_video={_has_video_stream(mp4) if os.path.exists(mp4) else 'n/a'} "
-                       f"cookies={'yes' if (cookies and cookies.strip()) else 'no'}\n"
-                       f"STDERR:\n{r.stderr[-1500:]}\nSTDOUT:\n{r.stdout[-500:]}")
     return mp4 if (r.returncode == 0 and os.path.exists(mp4) and _has_video_stream(mp4)) else None
-
-
-_LAST_YTDLP_LOG = ""
 
 
 # ---------- lịch sử phân tích ----------
