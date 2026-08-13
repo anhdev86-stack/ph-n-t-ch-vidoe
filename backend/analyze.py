@@ -182,6 +182,20 @@ def _record_history(video_id: str, source: str, title: str, owner: str = ""):
     _save_history(items)
 
 
+def reassign_history_owner(video_id: str, new_owner: str, from_owner: str = "") -> bool:
+    """Admin gán lại owner cho dòng lịch sử của 1 video (sửa quy kết dữ liệu cũ)."""
+    new_owner = new_owner or "admin"
+    items = _load_history()
+    changed = False
+    for it in items:
+        if it["video_id"] == video_id and (not from_owner or (it.get("owner") or "admin") == from_owner):
+            it["owner"] = new_owner
+            changed = True
+    if changed:
+        _save_history(items)
+    return changed
+
+
 def record_history_for(video_id: str, source: str, title: str, owner: str = ""):
     """Ghi 1 video (đã có cache) vào lịch sử của người dùng — dùng khi cache hit."""
     _record_history(video_id, source, title, owner)

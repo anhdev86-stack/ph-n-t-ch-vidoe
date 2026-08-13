@@ -516,6 +516,29 @@ def delete_upload(video_id: str, user: dict = Depends(require_user)):
     return {"removed": True}
 
 
+class OwnerBody(BaseModel):
+    owner: str
+    from_owner: str = ""  # (history) chủ hiện tại của dòng cần đổi
+
+
+@app.put("/api/v1/uploads/{video_id}/owner")
+def set_upload_owner(video_id: str, body: OwnerBody, admin: dict = Depends(require_admin)):
+    """Admin gán lại người sở hữu video upload (sửa quy kết dữ liệu cũ)."""
+    items = _upload_index()
+    for x in items:
+        if x.get("id") == video_id:
+            x["owner"] = body.owner
+    _save_index(items)
+    return {"ok": True}
+
+
+@app.put("/api/v1/history/{video_id}/owner")
+def set_history_owner(video_id: str, body: OwnerBody, admin: dict = Depends(require_admin)):
+    """Admin gán lại người sở hữu dòng lịch sử phân tích."""
+    import analyze as az
+    return {"ok": az.reassign_history_owner(video_id, body.owner, body.from_owner)}
+
+
 # ---------- Video Affiliate ----------
 def _first(d, *keys):
     for k in keys:
