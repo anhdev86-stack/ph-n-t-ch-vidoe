@@ -241,7 +241,11 @@ def get_cached(video_id: str) -> dict | None:
     cf = os.path.join(CACHE, f"{video_id}.json")
     if os.path.exists(cf):
         try:
-            return json.load(open(cf, encoding="utf-8"))
+            d = json.load(open(cf, encoding="utf-8"))
+            if not d.get("kich_ban_video"):
+                os.remove(cf)   # cache rỗng (lỗi cũ) -> bỏ, để phân tích lại
+                return None
+            return d
         except Exception:  # noqa: BLE001
             return None
     return None
@@ -311,6 +315,9 @@ def analyze_video(video_id: str, video_url: str | None = None,
         result = llm.segment_and_analyze(transcript, visual, skill=_ai_skill_text())
 
     mapped = _map(result)
+    if not mapped.get("kich_ban_video"):
+        # AI trả rỗng (JSON cụt/lỗi) -> KHÔNG cache để lần sau chạy lại, báo lỗi rõ
+        raise RuntimeError("AI trả kết quả rỗng. Vui lòng bấm phân tích lại.")
     json.dump(mapped, open(cache_file, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
     _record_history(video_id, src, title, owner)
     return mapped

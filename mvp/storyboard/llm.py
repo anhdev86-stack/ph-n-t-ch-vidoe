@@ -35,7 +35,7 @@ def describe_frames(frames, batch: int = 12):
             model=MODEL, max_tokens=4000,
             messages=[{"role": "user", "content": content}],
         )
-        text = next((b.text for b in resp.content if b.type == "text"), "{}")
+        text = "".join(b.text for b in resp.content if getattr(b, "type", "") == "text")  # ghép hết block tránh JSON cụt
         results.extend(_loads(text).get("frames", []))
     return results
 
@@ -62,7 +62,7 @@ def segment_and_analyze(transcript, visual, skill: str = "", guide: str = ""):
                                   "schema": prompts.STORYBOARD_SCHEMA}},
         messages=[{"role": "user", "content": prompt}],
     )
-    text = next((b.text for b in resp.content if b.type == "text"), "{}")
+    text = "".join(b.text for b in resp.content if getattr(b, "type", "") == "text")  # ghép hết block tránh JSON cụt
     return _loads(text)
 
 
@@ -77,7 +77,7 @@ def find_common(video_briefs: list) -> dict:
         output_config={"format": {"type": "json_schema", "schema": prompts.COMMON_SCHEMA}},
         messages=[{"role": "user", "content": prompt}],
     )
-    text = next((b.text for b in resp.content if b.type == "text"), "{}")
+    text = "".join(b.text for b in resp.content if getattr(b, "type", "") == "text")  # ghép hết block tránh JSON cụt
     return _loads(text)
 
 
