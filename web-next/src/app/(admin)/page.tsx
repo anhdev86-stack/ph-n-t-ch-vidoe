@@ -73,11 +73,12 @@ export default function StoryboardPage() {
           if (done) return; done = true;
           setData(d); setAnalyzing(false);
         };
-        api.post("/analyze", { video_id: vid, video_url: vurl || undefined,
+        const trigger = () => api.post("/analyze", { video_id: vid, video_url: vurl || undefined,
           title: p.get("title") || "", source: p.get("source") || "" })
           .then((r) => { if (r?.kich_ban_video?.length) finish(r); })
           .catch(() => { /* nuốt lỗi timeout -> để polling lo */ });
-        let tries = 0;
+        trigger();
+        let tries = 0, idleSeen = 0, resubmits = 0;
         const poll = setInterval(() => {
           if (done) { clearInterval(poll); return; }
           if (++tries > 225) { // ~30 phút (chịu được lúc đông người xếp hàng)
@@ -87,9 +88,14 @@ export default function StoryboardPage() {
           }
           api.get(`/analysis/${vid}`)
             .then((c) => {
-              if (c?.kich_ban_video?.length) { clearInterval(poll); finish(c); }
-              else if (c?.error && !done) { clearInterval(poll); done = true; setErr(c.error); setAnalyzing(false); }
-              // c.status = "queued" | "running": vẫn chờ, không báo lỗi
+              if (c?.kich_ban_video?.length) { clearInterval(poll); finish(c); return; }
+              if (c?.error && !done) { clearInterval(poll); done = true; setErr(c.error); setAnalyzing(false); return; }
+              // Job KHÔNG còn chạy (idle) mà chưa có kết quả -> có thể server vừa restart làm mất job.
+              // Tự chạy lại (tối đa 3 lần) để không treo mãi.
+              if (c?.status === "idle") {
+                if (++idleSeen >= 2 && resubmits < 3) { idleSeen = 0; resubmits++; trigger(); }
+              } else { idleSeen = 0; }
+              // status "queued" | "running": đang xử lý, tiếp tục chờ.
             })
             .catch(() => {});
         }, 8000);
