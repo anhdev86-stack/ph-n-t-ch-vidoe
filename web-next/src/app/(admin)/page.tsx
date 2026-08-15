@@ -80,15 +80,16 @@ export default function StoryboardPage() {
         let tries = 0;
         const poll = setInterval(() => {
           if (done) { clearInterval(poll); return; }
-          if (++tries > 60) { // ~8 phút
+          if (++tries > 225) { // ~30 phút (chịu được lúc đông người xếp hàng)
             clearInterval(poll);
-            if (!done) { setErr("Phân tích quá lâu hoặc thất bại. Thử lại hoặc chờ thêm."); setAnalyzing(false); }
+            if (!done) { setErr("Hệ thống đang bận (nhiều người phân tích cùng lúc). Video vẫn đang xử lý ở nền — mở lại video này sau ít phút sẽ có kết quả đã lưu."); setAnalyzing(false); }
             return;
           }
           api.get(`/analysis/${vid}`)
             .then((c) => {
               if (c?.kich_ban_video?.length) { clearInterval(poll); finish(c); }
               else if (c?.error && !done) { clearInterval(poll); done = true; setErr(c.error); setAnalyzing(false); }
+              // c.status = "queued" | "running": vẫn chờ, không báo lỗi
             })
             .catch(() => {});
         }, 8000);

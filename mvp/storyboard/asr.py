@@ -10,15 +10,32 @@ import os
 import re
 import shutil
 import subprocess
+import threading
+
+# Nạp model Whisper 1 LẦN rồi dùng chung (tránh mỗi request nạp lại ~1GB RAM -> cạn RAM khi đông).
+# Serialize ASR bằng lock: Whisper ngốn CPU, chạy 1 lượt/lần để nhiều người không làm nghẽn CPU.
+_WMODEL = None
+_WMODEL_LOCK = threading.Lock()
+_ASR_LOCK = threading.Lock()
+
+
+def _get_whisper(model_size: str = "small"):
+    global _WMODEL
+    if _WMODEL is None:
+        with _WMODEL_LOCK:
+            if _WMODEL is None:
+                from faster_whisper import WhisperModel
+                _WMODEL = WhisperModel(model_size, device="cpu", compute_type="int8")
+    return _WMODEL
 
 
 def _from_faster_whisper(wav_path: str, model_size: str = "small", language: str | None = "vi"):
-    from faster_whisper import WhisperModel  # import trong hàm để backend là tùy chọn
-    model = WhisperModel(model_size, device="cpu", compute_type="int8")
+    model = _get_whisper(model_size)
     # language=None -> tự nhận diện (dùng cho video đối thủ tiếng nước ngoài)
-    segments, _ = model.transcribe(wav_path, language=language, vad_filter=True)
-    return [{"start": round(s.start, 1), "end": round(s.end, 1),
-             "text": s.text.strip()} for s in segments]
+    with _ASR_LOCK:  # 1 ASR/lần -> tránh 90 người cùng chạy Whisper làm treo CPU
+        segments, _ = model.transcribe(wav_path, language=language, vad_filter=True)
+        return [{"start": round(s.start, 1), "end": round(s.end, 1),
+                 "text": s.text.strip()} for s in segments]
 
 
 def _from_whisper_cpp(wav_path: str, model_size: str = "small"):

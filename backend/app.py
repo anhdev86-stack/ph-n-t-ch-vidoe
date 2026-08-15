@@ -159,13 +159,21 @@ class AnalyzeBody(BaseModel):
 
 # Chạy phân tích trong nền -> POST trả về NGAY (không dính timeout proxy),
 # frontend poll /analysis/{id} tới khi có kết quả hoặc lỗi.
+# HÀNG ĐỢI GIỚI HẠN: chỉ chạy tối đa ANALYZE_WORKERS job cùng lúc, phần còn lại XẾP HÀNG
+# -> nhiều người bấm cùng lúc cũng KHÔNG làm treo máy (không đẻ vô số thread + cạn RAM/CPU).
 import threading  # noqa: E402
-_jobs: dict[str, str] = {}  # video_id -> "running" | "error: ..."
+from concurrent.futures import ThreadPoolExecutor  # noqa: E402
+
+_ANALYZE_WORKERS = int(os.environ.get("ANALYZE_WORKERS", "3"))
+_analyze_pool = ThreadPoolExecutor(max_workers=_ANALYZE_WORKERS, thread_name_prefix="analyze")
+_jobs: dict[str, str] = {}  # video_id -> "queued" | "running" | "error: ..."
 _jobs_lock = threading.Lock()
 
 
 def _run_analyze(video_id, video_url, title, source, owner):
     import analyze as az
+    with _jobs_lock:
+        _jobs[video_id] = "running"  # đã tới lượt (trước đó là "queued")
     try:
         az.analyze_video(video_id, video_url, title, source, owner)
         with _jobs_lock:
@@ -177,7 +185,7 @@ def _run_analyze(video_id, video_url, title, source, owner):
 
 @app.post("/api/v1/analyze")
 def analyze(body: AnalyzeBody, user: dict = Depends(require_user)):
-    """Khởi chạy phân tích trong NỀN. Trả {status}. Kết quả lấy qua GET /analysis/{id}."""
+    """Khởi chạy phân tích trong NỀN (qua hàng đợi). Trả {status}. Kết quả lấy qua GET /analysis/{id}."""
     import analyze as az
     owner = user["sub"]
     cached = az.get_cached(body.video_id)
@@ -185,14 +193,12 @@ def analyze(body: AnalyzeBody, user: dict = Depends(require_user)):
         az.record_history_for(body.video_id, body.source, body.title, owner)  # vào lịch sử của người này
         return cached
     with _jobs_lock:
-        running = _jobs.get(body.video_id) == "running"
-        if not running:
-            _jobs[body.video_id] = "running"
-    if not running:
-        t = threading.Thread(target=_run_analyze,
-                             args=(body.video_id, body.video_url, body.title, body.source, owner),
-                             daemon=True)
-        t.start()
+        active = _jobs.get(body.video_id) in ("queued", "running")
+        if not active:
+            _jobs[body.video_id] = "queued"
+    if not active:
+        _analyze_pool.submit(_run_analyze, body.video_id, body.video_url,
+                             body.title, body.source, owner)
     return {"status": "processing"}
 
 
