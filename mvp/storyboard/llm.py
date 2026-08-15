@@ -56,14 +56,21 @@ def segment_and_analyze(transcript, visual, skill: str = "", guide: str = ""):
         transcript=json.dumps(transcript, ensure_ascii=False),
         visual=json.dumps(visual, ensure_ascii=False),
     )
-    resp = _client.messages.create(
-        model=MODEL, max_tokens=8000,
-        output_config={"format": {"type": "json_schema",
-                                  "schema": prompts.STORYBOARD_SCHEMA}},
-        messages=[{"role": "user", "content": prompt}],
-    )
-    text = "".join(b.text for b in resp.content if getattr(b, "type", "") == "text")  # ghép hết block tránh JSON cụt
-    return _loads(text)
+    text = ""
+    for _ in range(2):  # video dài -> output nhiều, đôi khi bị cắt -> thử lại
+        resp = _client.messages.create(
+            model=MODEL, max_tokens=16000,   # headroom cho video dài (nhiều phân cảnh)
+            output_config={"format": {"type": "json_schema",
+                                      "schema": prompts.STORYBOARD_SCHEMA}},
+            messages=[{"role": "user", "content": prompt}],
+        )
+        text = "".join(b.text for b in resp.content if getattr(b, "type", "") == "text")
+        data = _loads(text)
+        if data.get("storyboard"):
+            return data
+    # vẫn rỗng -> nêu rõ nguyên nhân (stop_reason=max_tokens => output quá dài bị cắt)
+    raise RuntimeError(f"segment rỗng (stop_reason={getattr(resp, 'stop_reason', '?')}, "
+                       f"len={len(text)}, head={text[:100]!r})")
 
 
 def find_common(video_briefs: list) -> dict:
